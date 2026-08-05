@@ -25,10 +25,50 @@ var log_label: Label
 var pause_button: Button
 var battery_button: Button
 var doors_button: Button
+var power_panel: PanelContainer
 var power_boxes := {}          # system_id -> Label
 var weapon_buttons := []       # array of {button, weapon}
 
 var star_points := []
+
+# Rectangles to sanity-check for screen overlap (global pixel rects).
+var layout_rects := {}                 # name -> Rect2
+
+func _rect_noise() -> void:
+	layout_rects = {}
+	layout_rects["player_ship"] = _ship_global_rect(player_view)
+	layout_rects["enemy_ship"] = _ship_global_rect(enemy_view)
+	if resources_label != null:
+		layout_rects["resources"] = resources_label.get_global_rect()
+	if log_label != null:
+		layout_rects["log"] = log_label.get_global_rect()
+	layout_rects["systems"] = power_panel.get_global_rect()
+	for child in hud.get_children():
+		if child == power_panel:
+			continue
+		if child is PanelContainer:
+			var name: String = "panel"
+			if child.get_child_count() > 0 and child.get_child(0).get_child_count() > 0:
+				name = child.get_child(0).get_child(0).text
+			layout_rects[name] = child.get_global_rect()
+		elif child is Button:
+			layout_rects["btn_" + str(child.text)] = child.get_global_rect()
+
+func _ship_global_rect(v: ShipView) -> Rect2:
+	var size := v.total_size() * v.scale
+	return Rect2(v.global_position, size)
+
+func _check_layout() -> Array:
+	_rect_noise()
+	var problems: Array = []
+	var names := layout_rects.keys()
+	for i in names.size():
+		for j in range(i + 1, names.size()):
+			var a: Rect2 = layout_rects[names[i]]
+			var b: Rect2 = layout_rects[names[j]]
+			if a.size.x > 0 and b.size.x > 0 and a.intersects(b):
+				problems.append("%s <-> %s overlap" % [names[i], names[j]])
+	return problems
 
 func start_battle(p: Ship, e: Ship, sector: int) -> void:
 	player = p
@@ -48,6 +88,7 @@ func start_battle(p: Ship, e: Ship, sector: int) -> void:
 	if combat.hazard != "":
 		_log("Hazard: %s zone." % combat.hazard)
 	queue_redraw()
+	_check_layout()
 
 # ---------- scene construction ----------
 
@@ -59,14 +100,19 @@ func _build_background() -> void:
 	add_child(bg)
 
 func _build_ships() -> void:
+	const SCALE := 0.35
 	player_view = ShipView.new()
 	player_view.setup(player, false)
+	player_view.scale = Vector2(SCALE, SCALE)
 	add_child(player_view)
-	player_view.position = Vector2(90, 60)
+	var ps: Vector2 = player_view.total_size() * SCALE
+	player_view.position = Vector2(60, 340)
 	enemy_view = ShipView.new()
 	enemy_view.setup(enemy, true)
+	enemy_view.scale = Vector2(SCALE, SCALE)
 	add_child(enemy_view)
-	enemy_view.position = Vector2(90, 0)
+	var es: Vector2 = enemy_view.total_size() * SCALE
+	enemy_view.position = Vector2(VP().x - es.x - 20, 70)
 
 func _build_starfield() -> void:
 	for i in 300:
@@ -124,8 +170,8 @@ func _build_hud() -> void:
 		doors_button.pressed.connect(_toggle_doors)
 		hud.add_child(doors_button)
 
-	var power_panel := PanelContainer.new()
-	power_panel.position = Vector2(12, VP().y - 230)
+	power_panel = PanelContainer.new()
+	power_panel.position = Vector2(12, 540)
 	var vbox := VBoxContainer.new()
 	power_panel.add_child(vbox)
 	var title := Label.new()
@@ -143,7 +189,7 @@ func _build_hud() -> void:
 	_build_teleporter_panel(self)
 
 	log_label = Label.new()
-	log_label.position = Vector2(12, VP().y - 370)
+	log_label.position = Vector2(700, 340)
 	log_label.custom_minimum_size = Vector2(300, 120)
 	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	log_label.add_theme_font_size_override("font_size", 14)
@@ -151,7 +197,7 @@ func _build_hud() -> void:
 
 func _build_weapons_panel() -> void:
 	var panel := PanelContainer.new()
-	panel.position = Vector2(VP().x - 240, VP().y - 260)
+	panel.position = Vector2(1040, 470)
 	var vbox := VBoxContainer.new()
 	panel.add_child(vbox)
 	var title := Label.new()
@@ -171,7 +217,7 @@ func _build_weapons_panel() -> void:
 
 func _build_crew_panel() -> void:
 	var panel := PanelContainer.new()
-	panel.position = Vector2(12, 110)
+	panel.position = Vector2(700, 60)
 	var vbox := VBoxContainer.new()
 	panel.add_child(vbox)
 	var title := Label.new()
@@ -209,7 +255,7 @@ func _roman(lv: int) -> String:
 func _build_teleporter_panel(_ignore) -> void:
 	if player.systems.has("teleporter"):
 		var panel := PanelContainer.new()
-		panel.position = Vector2(220, 110)
+		panel.position = Vector2(480, 60)
 		var vbox := VBoxContainer.new()
 		panel.add_child(vbox)
 		var title := Label.new()

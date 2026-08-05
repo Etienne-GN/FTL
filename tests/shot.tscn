@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://bshot0000000001"]
+
+[ext_resource type="Script" path="res://tests/shot.gd" id="1"]
+[ext_resource type="PackedScene" path="res://src/scenes/main.tscn" id="2"]
+
+[node name="Shot" type="Node"]
+
+[node name="Main" parent="." instance=ExtResource("2")]
+
+[node name="Driver" type="Node" parent="."]
+script = ExtResource("1")
