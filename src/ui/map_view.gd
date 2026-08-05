@@ -9,13 +9,44 @@ signal clicked(beacon_id: String)
 var map: SectorMap
 var spacing := Vector2(170, 120)
 var origin := Vector2(70, 150)
-var r := 16.0
+var r := 18.0
+var beacon_buttons := {}
 
 func setup(m: SectorMap) -> void:
 	map = m
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	_build_buttons()
 	queue_redraw()
+
+func _build_buttons() -> void:
+	for child in get_children():
+		child.queue_free()
+	beacon_buttons.clear()
+	if map == null:
+		return
+	for b in map.beacons:
+		var btn := Button.new()
+		btn.text = ""
+		btn.flat = true
+		btn.custom_minimum_size = Vector2(r * 2.5, r * 2.5)
+		btn.position = beacon_px(b) - Vector2(r * 1.25, r * 1.25)
+		var bid: String = b.id
+		btn.pressed.connect(func(): _on_beacon_pressed(bid))
+		add_child(btn)
+		beacon_buttons[bid] = btn
+	_update_button_states()
+
+func _update_button_states() -> void:
+	if map == null:
+		return
+	var reach := map.reachable()
+	for bid in beacon_buttons:
+		var btn: Button = beacon_buttons[bid]
+		btn.disabled = not reach.has(bid)
+
+func _on_beacon_pressed(beacon_id: String) -> void:
+	clicked.emit(beacon_id)
 
 func beacon_px(b: Dictionary) -> Vector2:
 	return origin + Vector2(b.col, b.row) * spacing
@@ -60,13 +91,3 @@ func _type_color(t: String) -> Color:
 		"exit": return Color(1.0, 1.0, 1.0)
 		"start": return Color(0.4, 1.0, 0.4)
 	return Color(0.5, 0.5, 0.6)
-
-func _gui_input(event: InputEvent) -> void:
-	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
-		return
-	var pos: Vector2 = event.position
-	var reach := map.reachable()
-	for b in map.beacons:
-		if reach.has(b.id) and beacon_px(b).distance_to(pos) <= r + 8:
-			clicked.emit(b.id)
-			return
