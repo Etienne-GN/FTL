@@ -79,9 +79,21 @@ func _enemy_def(rank: int) -> Dictionary:
 		sys_cfg["teleporter"] = {"level": 1}
 		start_power["teleporter"] = 1
 	var crew := _enemy_crew(rank)
+	var drones: Array = []
+	var drone_lvl := 0
+	if rank >= 5:
+		drones.append("combat_1")
+		drone_lvl = 1
+	if rank >= 7:
+		drones.append("defense_1")
+		drone_lvl = 2
+	if drone_lvl > 0:
+		sys_cfg["drones"] = {"level": drone_lvl}
+		start_power["drones"] = drone_lvl
+	var names := ["Enemy Frigate", "Pirate Gunship", "Slug Raider", "Rebel Corvette", "Mantis Hunter", "Engi Guardian"]
 	return {
 		"id": "enemy_%d" % rank,
-		"name": "Enemy Frigate",
+		"name": names[randi() % names.size()],
 		"grid": {"w": 12, "h": 6},
 		"hull": hull,
 		"reactor": reactor,
@@ -93,7 +105,7 @@ func _enemy_def(rank: int) -> Dictionary:
 		"crew": crew,
 		"systems": sys_cfg,
 		"weapons": weapons,
-		"drones": [],
+		"drones": drones,
 		"rooms": _enemy_rooms(),
 	}
 
