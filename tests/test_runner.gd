@@ -20,6 +20,8 @@ func run_tests() -> void:
 	await _test_boarding()
 	_run_test("sector map", _test_sector_map())
 	_run_test("jump flow", _test_jump())
+	_run_test("run completion", _test_run_completion())
+	_run_test("boss encounter", _test_boss())
 	if failures == 0:
 		print("ALL TESTS PASSED")
 	else:
@@ -174,3 +176,24 @@ func _test_jump() -> bool:
 		return false
 	# jumping to exit advances sector
 	return true
+
+func _test_run_completion() -> bool:
+	GameState.new_run("kestrel")
+	for s in range(8):
+		GameState.next_sector()
+	return GameState.victory_flag
+
+func _test_boss() -> bool:
+	GameState.new_run("kestrel")
+	GameState.sector = 8
+	# force current beacon to be the exit and ensure boss encounter spawns
+	var exit_b: Dictionary = {}
+	for b in GameState.map.beacons:
+		if b.type == "exit":
+			exit_b = b
+			break
+	if exit_b.is_empty():
+		return false
+	GameState.map.player_id = exit_b.id
+	GameState.pending_encounter = GameState._make_encounter()
+	return GameState.pending_encounter.get("boss", false) and GameState.enemy_ship != null

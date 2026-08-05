@@ -203,3 +203,14 @@ func next_sector() -> void:
 	beacons = map.beacons
 	pending_encounter = {}
 	player_ship.refresh_after_sector()
+
+func stock_systems() -> Array:
+	return ["shields", "engines", "weapons", "oxygen", "medbay", "drones", "teleporter"]
+
+func stock_weapons() -> Array:
+	var pool := ["basic_laser", "burst_laser_1", "burst_laser_2", "emp_laser", "artemis", "fire_beam", "flak_1", "heavy_ion"]
+	var n := 3
+	var out: Array = []
+	for i in range(n):
+		out.append(pool[randi() % pool.size()])
+	return out
