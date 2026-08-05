@@ -64,7 +64,8 @@ func _draw_room(room_id: String) -> void:
 	var sys: SystemState = ship.systems.get(sys_id)
 	var powered := sys != null and sys.active() and not sys.is_destroyed()
 	var draw_col: Color = col if powered else col * 0.35
-	draw_rect(px, draw_col.lerp(BACKGROUND, 0.15), true)
+	draw_col.a = 0.55   # translucent so hull texture shows through underneath
+	draw_rect(px, draw_col, true)
 	# system damage overlay
 	if sys != null and sys.is_destroyed():
 		draw_rect(px, Color(0.4, 0.1, 0.1, 0.6), true)
