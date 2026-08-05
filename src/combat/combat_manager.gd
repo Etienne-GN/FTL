@@ -49,6 +49,58 @@ func _enemy_ai(delta: float) -> void:
 			w.target_room_id = target
 			_fire_weapon(enemy, player, w)
 			w.reset_charge()
+	_enemy_crew_ai(delta)
+
+func _enemy_crew_ai(delta: float) -> void:
+	var idle := 0
+	for cm in enemy.crew:
+		if not cm.alive():
+			continue
+		if cm.task == "move":
+			continue
+		# repair damaged systems first
+		var rep := _damaged_system_room(enemy)
+		if rep != "":
+			enemy.assign_crew_to_room(cm, rep)
+			continue
+		idle += 1
+	# manning: ensure each key station has someone
+	for station in ["weapons", "shields", "engines", "piloting"]:
+		if not _station_manned(enemy, station):
+			for cm in enemy.crew:
+				if cm.alive() and cm.task != "move":
+					var rid := enemy.system_room_id(station)
+					if rid != "":
+						enemy.assign_crew_to_room(cm, rid)
+					break
+	# boarding: send crew to player ship if teleporter ready
+	if enemy.teleporter_ready() and idle > 0:
+		var crew_in_tp: Array = enemy.crew_in_room_ids(enemy.system_room_id("teleporter"))
+		if crew_in_tp.size() < 2:
+			for cm in enemy.crew:
+				if cm.alive() and cm.task != "move":
+					enemy.assign_crew_to_room(cm, enemy.system_room_id("teleporter"))
+					idle -= 1
+					break
+		crew_in_tp = enemy.crew_in_room_ids(enemy.system_room_id("teleporter"))
+		if not crew_in_tp.is_empty() and enemy.teleporter_ready():
+			enemy.teleport_crew_to(player, _pick_target(player, null))
+
+func _damaged_system_room(ship: Ship) -> String:
+	for r in ship.room_order:
+		var sid: String = ship.rooms[r].system
+		if sid != "" and ship.systems.has(sid) and ship.systems[sid].health < 1:
+			return r
+	return ""
+
+func _station_manned(ship: Ship, sid: String) -> bool:
+	var rid := ship.system_room_id(sid)
+	if rid == "":
+		return false
+	for cm in ship.crew:
+		if cm.alive() and cm.room.id == rid:
+			return true
+	return false
 
 func _pick_target(target_ship: Ship, w: WeaponState) -> String:
 	# Prefer a powered, important system room; fall back to random.

@@ -104,6 +104,11 @@ func _build_systems() -> void:
 	for sid in ["shields", "engines", "weapons", "oxygen"]:
 		if not systems.has(sid):
 			systems[sid] = SystemState.new(Content.get_system(sid), 0, reactor)
+	# create states for any system referenced by a room (even if level 0)
+	for r in rooms.values():
+		var rid: String = r.system
+		if rid != "" and not systems.has(rid) and Content.systems.has(rid):
+			systems[rid] = SystemState.new(Content.get_system(rid), 0, reactor)
 	# starting power allocation (player-configured per ship)
 	var start_power: Dictionary = def.get("power", {})
 	for sid in start_power:
@@ -134,6 +139,8 @@ func _build_crew() -> void:
 		var room_id := _crew_start_room(i)
 		cm.ship = self
 		cm.assign_room(rooms[room_id])
+		cm.pos = _room_center_tile(room_id)
+		cm.task = "man"
 		i += 1
 
 func _crew_start_room(i: int) -> String:
@@ -318,13 +325,15 @@ func _process_environment(delta: float) -> void:
 			room.oxygen = move_toward(room.oxygen, o2_level, delta)
 
 func _neighbors(room_id: String) -> Array:
+	# Rooms connect if their rectangles come within 1 tile of each other
+	# (ships have 1-tile corridor gaps between rooms).
 	var out: Array = []
 	var rect: Rect2i = rooms[room_id].rect
 	for r in room_order:
 		if r == room_id:
 			continue
 		var rr: Rect2i = rooms[r].rect
-		if rect.grow(1).intersects(rr):
+		if rect.grow(2).intersects(rr):
 			out.append(r)
 	return out
 
@@ -336,37 +345,228 @@ func _apply_breach(room: Dictionary) -> void:
 func assign_crew_to_room(cm: CrewMember, room_id: String) -> void:
 	if not rooms.has(room_id):
 		return
+	var from_room: String = cm.room.id if not cm.room.is_empty() else ""
 	cm.assign_room(rooms[room_id])
 	cm.target_room_id = room_id
+	cm.path.clear()
+	if from_room != "" and from_room != room_id:
+		cm.task = "move"
+		cm.path = path_between(from_room, room_id)
+		cm.pos = _room_center_tile(from_room)
+	else:
+		cm.task = "man"
+
+func path_between(from_id: String, to_id: String) -> Array:
+	# BFS over adjacent rooms.
+	if from_id == to_id:
+		return []
+	var frontier: Array = [[from_id]]
+	var seen := {from_id: true}
+	while not frontier.is_empty():
+		var path: Array = frontier.pop_front()
+		var last: String = path[path.size() - 1]
+		for n in _neighbors(last):
+			if seen.has(n):
+				continue
+			seen[n] = true
+			var np: Array = path.duplicate()
+			np.append(n)
+			if n == to_id:
+				return np.slice(1)
+			frontier.append(np)
+	return []
+
+func _room_center_tile(room_id: String) -> Vector2:
+	var rect: Rect2i = rooms[room_id].rect
+	return Vector2(rect.position) + Vector2(rect.size) * 0.5
 
 func _process_crew(delta: float) -> void:
 	for cm in crew:
 		if not cm.alive():
 			continue
 		_process_crew_one(cm, delta)
+	_process_boarders(delta)
 
 func _process_crew_one(cm: CrewMember, delta: float) -> void:
+	_move_crew(cm, delta)
 	var room: Dictionary = cm.room
-	# O2 damage
+	# hazard damage
+	if room.fire > 0.3 and not _fire_resist(cm):
+		cm.hp -= 3.0 * delta
 	if room.oxygen < 0.2:
-		cm.hp -= 2.5 * delta * (1.0 - room.oxygen / 0.2)
-	# fire damage
-	if room.fire > 0.3:
-		cm.hp -= 2.0 * delta
+		cm.hp -= 3.0 * delta
 	# medbay heal
 	var medroom := system_room_id("medbay")
 	if medroom != "" and room.id == medroom and is_powered("medbay"):
-		var rate := float(systems.medbay.stat("heal_rate", 2.0))
-		cm.hp = minf(cm.max_hp, cm.hp + rate * delta)
-	# firefighting / repair tasks handled by AI in manager; basic here
-	if cm.task == "man" and room.system != "":
-		pass
-	if cm.task == "repair" and room.system != "":
-		var sys: SystemState = systems.get(room.system)
-		if sys != null and sys.health < 1:
-			var rate := 1.0 * cm.skill_bonus("repair")
-			if randf() < rate * delta:
-				sys.health = 1
+		cm.hp = minf(cm.max_hp, cm.hp + float(systems.medbay.stat("heal_rate", 2.0)) * delta)
+	# auto behaviors when not traveling
+	if cm.task == "move":
+		return
+	var sys: SystemState = systems.get(room.system)
+	# fight fire
+	if room.fire > 0.2:
+		if not _fire_resist(cm):
+			room.fire = maxf(0.0, room.fire - cm.skill_bonus("repair") * delta * 0.8)
+	# repair damaged system in this room
+	if sys != null and sys.health < 1:
+		sys.health = 1
+		cm.hp = maxf(0.0, cm.hp - 1.0)  # small hp cost to simulate risk
+	# combat with hostiles present
+	var hostiles := _hostiles_in_room(cm.room.id)
+	if not hostiles.is_empty():
+		_crew_fight(cm, hostiles, delta)
+
+func _move_crew(cm: CrewMember, delta: float) -> void:
+	if cm.path.is_empty():
+		return
+	var next_room: String = cm.path[0]
+	var target: Vector2 = _room_center_tile(next_room)
+	var dir: Vector2 = target - cm.pos
+	var dist: float = dir.length()
+	var step: float = cm.speed * delta
+	if dist <= step:
+		cm.pos = target
+		cm.path.pop_front()
+		cm.assign_room(rooms[next_room])
+		if cm.path.is_empty():
+			cm.task = "man"
+	else:
+		cm.pos += dir / dist * step
+
+func _hostiles_in_room(room_id: String) -> Array:
+	var out: Array = []
+	for b in boarders:
+		if b.alive() and b.room.id == room_id:
+			out.append(b)
+	return out
+
+func _crew_fight(cm: CrewMember, hostiles: Array, delta: float) -> void:
+	for h in hostiles:
+		if not h.alive():
+			continue
+		var dmg := 1.2 * cm.skill_bonus("fight") * delta
+		h.hp -= dmg
+		# retaliation
+		var rdmg: float = 1.2 * float(h.skill_bonus("fight")) * delta
+		cm.hp -= rdmg
+		if cm.hp <= 0.0:
+			cm.hp = 0.0
+		break
+
+func _fire_resist(cm: CrewMember) -> bool:
+	var stats = CrewMember.RACES.get(cm.race, {})
+	return stats.get("fire_resist", false)
+
+func _process_boarders(delta: float) -> void:
+	for b in boarders:
+		if not b.alive():
+			continue
+		_move_crew(b, delta)
+		# pick a target room when idle: a crewed room to fight, else a system room
+		if b.task == "man" or b.path.is_empty():
+			var target := _boarder_target(b)
+			if target != "":
+				b.task = "move"
+				b.path = path_between(b.room.id, target)
+		# hazards
+		if b.room.fire > 0.3 and not _fire_resist(b):
+			b.hp -= 3.0 * delta
+		# damage systems when unopposed
+		var defenders := _crew_in_room(b.room.id)
+		if defenders.is_empty():
+			var sys: SystemState = systems.get(b.room.system)
+			if sys != null and sys.health > 0:
+				if randf() < 0.5 * delta:
+					sys.health = 0
+			# also damage hull slowly when in a room with a system-less interior? skip
+		else:
+			_crew_fight(defenders[0], [b], delta)
+	# remove dead boarders
+	boarders = boarders.filter(func(c): return c.alive())
+
+func _crew_in_room(room_id: String) -> Array:
+	var out: Array = []
+	for cm in crew:
+		if cm.alive() and cm.room.id == room_id:
+			out.append(cm)
+	return out
+
+func _boarder_target(b: CrewMember) -> String:
+	# prefer a room with crew to fight, else a powered system room
+	for cm in crew:
+		if cm.alive():
+			return cm.room.id
+	var prefer := ["weapons", "shields", "engines", "oxygen", "medbay"]
+	for p in prefer:
+		var rid := system_room_id(p)
+		if rid != "":
+			return rid
+	return random_room_id()
+
+# ----- Teleporter / boarding -----
+
+var teleporter_charge := 1.0
+
+func teleporter_ready() -> bool:
+	return is_powered("teleporter") and teleporter_charge >= 1.0
+
+func teleporter_charge_time() -> float:
+	return float(systems.teleporter.stat("charge_time", 20.0))
+
+func _process_teleporter(delta: float) -> void:
+	if not is_powered("teleporter"):
+		return
+	if teleporter_charge < 1.0:
+		teleporter_charge = minf(1.0, teleporter_charge + delta / maxf(teleporter_charge_time(), 0.1))
+
+func crew_in_room_ids(room_id: String) -> Array:
+	var out: Array = []
+	for cm in crew:
+		if cm.alive() and cm.room.id == room_id:
+			out.append(cm)
+	return out
+
+func teleport_crew_to(target: Ship, room_id: String) -> bool:
+	if not teleporter_ready():
+		return false
+	if not target.rooms.has(room_id):
+		return false
+	var tp_room := system_room_id("teleporter")
+	if tp_room == "":
+		return false
+	var to_send := crew_in_room_ids(tp_room)
+	if to_send.is_empty():
+		return false
+	for cm in to_send:
+		cm.hostile = true
+		cm.assign_room(target.rooms[room_id])
+		cm.pos = target._room_center_tile(room_id)
+		cm.path.clear()
+		cm.task = "man"
+		target.boarders.append(cm)
+		crew.erase(cm)
+	teleporter_charge = 0.0
+	return true
+
+func recall_boarding(from: Ship) -> void:
+	if not teleporter_ready():
+		return
+	var tp_room := system_room_id("teleporter")
+	var returned: Array = []
+	for b in from.boarders:
+		if b.alive() and b.ship == self:
+			b.ship = self
+			b.hostile = false
+			b.assign_room(rooms[tp_room])
+			b.pos = _room_center_tile(tp_room)
+			b.path.clear()
+			b.task = "man"
+			crew.append(b)
+			returned.append(b)
+	for b in returned:
+		from.boarders.erase(b)
+	if not returned.is_empty():
+		teleporter_charge = 0.0
 
 # ----- Weapon/drone control -----
 
@@ -449,6 +649,7 @@ func tick(delta: float) -> void:
 	_process_jump(delta)
 	_process_cloak(delta)
 	_process_shields(delta)
+	_process_teleporter(delta)
 	# ion decay
 	for sys in systems.values():
 		if sys.ion > 0:

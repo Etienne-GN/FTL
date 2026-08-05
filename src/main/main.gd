@@ -9,6 +9,7 @@ var enemy_view: ShipView
 var selected_weapon: WeaponState = null
 var targeting_enemy := false
 var selected_crew: CrewMember = null
+var crew_buttons: Dictionary = {}
 
 var hud: Control
 var resources_label: Label
@@ -105,6 +106,12 @@ func _build_hud() -> void:
 	# weapons panel
 	_build_weapons_panel()
 
+	# crew panel
+	_build_crew_panel()
+
+	# teleporter panel
+	_build_teleporter_panel()
+
 	# log
 	log_label = Label.new()
 	log_label.position = Vector2(12, VP().y - 360)
@@ -132,6 +139,65 @@ func _build_weapons_panel() -> void:
 		vbox.add_child(btn)
 		weapon_buttons.append({"button": btn, "weapon": w})
 	hud.add_child(panel)
+
+func _build_crew_panel() -> void:
+	var panel := PanelContainer.new()
+	panel.position = Vector2(12, 8)
+	var vbox := VBoxContainer.new()
+	panel.add_child(vbox)
+	var title := Label.new()
+	title.text = "CREW"
+	title.add_theme_font_size_override("font_size", 16)
+	vbox.add_child(title)
+	crew_buttons = {}
+	for cm in GameState.player_ship.crew:
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(150, 32)
+		btn.text = "%s (%s) HP %d" % [cm.name, cm.race, int(cm.hp)]
+		var captured: CrewMember = cm
+		btn.pressed.connect(_select_crew.bind(captured))
+		vbox.add_child(btn)
+		crew_buttons[cm] = btn
+	hud.add_child(panel)
+
+func _build_teleporter_panel() -> void:
+	if not GameState.player_ship.systems.has("teleporter"):
+		return
+	var panel := PanelContainer.new()
+	panel.position = Vector2(200, 8)
+	var vbox := VBoxContainer.new()
+	panel.add_child(vbox)
+	var title := Label.new()
+	title.text = "TELEPORTER"
+	title.add_theme_font_size_override("font_size", 16)
+	vbox.add_child(title)
+	var send := Button.new()
+	send.text = "Send crew (enemy)"
+	send.custom_minimum_size = Vector2(160, 36)
+	send.pressed.connect(_teleport_send)
+	vbox.add_child(send)
+	var recall := Button.new()
+	recall.text = "Recall boarders"
+	recall.custom_minimum_size = Vector2(160, 36)
+	recall.pressed.connect(_teleport_recall)
+	vbox.add_child(recall)
+	hud.add_child(panel)
+
+func _select_crew(cm: CrewMember) -> void:
+	selected_crew = cm
+	_log("Selected %s. Tap a room on your ship to move them." % cm.name)
+
+func _teleport_send() -> void:
+	if GameState.enemy_ship == null:
+		return
+	if GameState.player_ship.teleport_crew_to(GameState.enemy_ship, GameState.enemy_ship.random_room_id()):
+		_log("Crew beamed to enemy ship!")
+	else:
+		_log("Teleporter not ready, unpowered, or no crew in teleporter room.")
+
+func _teleport_recall() -> void:
+	GameState.player_ship.recall_boarding(GameState.enemy_ship)
+	_log("Boarders recalled.")
 
 func _make_system_row(sid: String) -> Control:
 	var sys: SystemState = GameState.player_ship.systems[sid]

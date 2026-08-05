@@ -20,6 +20,10 @@ var room: Dictionary = {}       # room ref {id, rect}
 var skills := {}                # skill -> level (1..2)
 var task: String = "idle"       # idle|man|repair|fight|move|teleport
 var target_room_id: String = ""
+var pos: Vector2 = Vector2.ZERO # position in ship-local tile coords
+var path: Array = []            # queue of room ids to traverse
+var speed := 1.4                # tiles per second
+var hostile := false            # true when boarding an enemy ship
 
 func _init(cdef: Dictionary = {}):
 	race = cdef.get("race", "human")
@@ -28,8 +32,7 @@ func _init(cdef: Dictionary = {}):
 	var stats = RACES.get(race, RACES["human"])
 	max_hp = stats.get("hp", 1.0)
 	hp = max_hp
-	# starts with 3 random skills at level 1 for skill-granted crew
-	skills = cdef.get("skills", {})
+	speed = stats.get("speed", 1.0) * 1.4
 
 func _random_name() -> String:
 	var names := ["Ash", "Blaine", "Chen", "Dax", "Eli", "Fennec", "Gor", "Hiss",

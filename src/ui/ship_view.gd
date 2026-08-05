@@ -75,20 +75,23 @@ func _draw_room(room_id: String) -> void:
 	if room.oxygen < 0.3:
 		draw_rect(px.grow(-6), Color(0.1, 0.4, 0.5, 0.5), true)
 
+func _crew_px(pos: Vector2) -> Vector2:
+	var x: float = pos.x * tile if not flipped else (ship.grid.x - pos.x) * tile
+	return Vector2(x, pos.y * tile)
+
 func _draw_crew() -> void:
 	for cm in ship.crew:
 		if not cm.alive():
 			continue
-		var room_id: String = cm.room.id
-		var px := room_rect_px(room_id)
-		var center := px.get_center()
+		var center := _crew_px(cm.pos)
 		draw_circle(center, 7.0, _crew_color(cm))
 		draw_circle(center, 7.0, Color.WHITE, false, 1.5)
 	for br in ship.boarders:
 		if not br.alive():
 			continue
-		var px := room_rect_px(br.room.id)
-		draw_circle(px.get_center(), 7.0, Color(0.9, 0.2, 0.2))
+		var center := _crew_px(br.pos)
+		draw_circle(center, 7.0, Color(0.9, 0.2, 0.2))
+		draw_circle(center, 7.0, Color.WHITE, false, 1.5)
 
 func _crew_color(cm: CrewMember) -> Color:
 	match cm.race:

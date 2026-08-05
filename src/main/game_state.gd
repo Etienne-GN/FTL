@@ -55,40 +55,54 @@ func _enemy_def(rank: int) -> Dictionary:
 	if rank >= 4:
 		shield_lvl = 2
 	var engine_lvl := 1 + int(rank / 2)
-	var weapon_lvl := 2
 	var weapons: Array = []
 	var pool := ["basic_laser", "burst_laser_1", "emp_laser", "artemis", "fire_beam"]
 	for i in range(1 + int(rank / 2)):
 		weapons.append(pool[randi() % pool.size()])
-	weapon_lvl = 2 + int(rank / 2)
-	var rooms := _enemy_rooms()
+	var weapon_lvl := 2 + int(rank / 2)
+	var sys_cfg := {
+		"shields": {"level": shield_lvl},
+		"engines": {"level": engine_lvl},
+		"weapons": {"level": weapon_lvl},
+		"oxygen": {"level": 1},
+	}
+	var start_power := {"shields": mini(1, reactor), "engines": mini(1, reactor), "weapons": mini(1, reactor)}
+	# higher-rank enemies get a teleporter for boarding
+	var has_tp := rank >= 3
+	if has_tp and reactor >= 4:
+		sys_cfg["teleporter"] = {"level": 1}
+		start_power["teleporter"] = 1
+	var crew := _enemy_crew(rank)
 	return {
 		"id": "enemy_%d" % rank,
 		"name": "Enemy Frigate",
 		"grid": {"w": 12, "h": 6},
 		"hull": hull,
 		"reactor": reactor,
-		"power": { "shields": mini(1, reactor), "engines": mini(1, reactor), "weapons": mini(1, reactor) },
+		"power": start_power,
 		"start_fuel": 0,
 		"start_missiles": 0,
 		"start_drone_parts": 0,
 		"start_scrap": 0,
-		"crew": [],
-		"systems": {
-			"shields": {"level": shield_lvl},
-			"engines": {"level": engine_lvl},
-			"weapons": {"level": weapon_lvl},
-			"oxygen": {"level": 1},
-		},
+		"crew": crew,
+		"systems": sys_cfg,
 		"weapons": weapons,
 		"drones": [],
-		"rooms": rooms,
+		"rooms": _enemy_rooms(),
 	}
+
+func _enemy_crew(rank: int) -> Array:
+	var count := clampi(1 + int(rank / 2), 1, 4)
+	var races := ["human", "human", "mantis", "rock", "engi"]
+	var out: Array = []
+	for i in range(count):
+		out.append({"name": "Intruder %d" % i, "race": races[randi() % races.size()]})
+	return out
 
 func _enemy_rooms() -> Array:
 	return [
 		{"id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1},
-		{"id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 1},
+		{"id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 2},
 		{"id": "weapons", "system": "weapons", "x": 0, "y": 2, "w": 4, "h": 2},
 		{"id": "engines", "system": "engines", "x": 8, "y": 2, "w": 4, "h": 2},
 		{"id": "oxygen", "system": "oxygen", "x": 3, "y": 4, "w": 4, "h": 2},
