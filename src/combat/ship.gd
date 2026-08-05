@@ -449,18 +449,44 @@ func _process_crew_one(cm: CrewMember, delta: float) -> void:
 	if cm.task == "move":
 		return
 	var sys: SystemState = systems.get(room.system)
+	# manning a powered station earns skill xp
+	if room.system != "" and is_powered(room.system):
+		var skill := _station_skill(room.system)
+		if skill != "":
+			cm.gain_xp(skill, 8.0 * delta)
 	# fight fire
 	if room.fire > 0.2:
 		if not _fire_resist(cm):
 			room.fire = maxf(0.0, room.fire - cm.skill_bonus("repair") * delta * 0.8)
+			cm.gain_xp("repair", 6.0 * delta)
 	# repair damaged system in this room
 	if sys != null and sys.health < 1:
 		sys.health = 1
 		cm.hp = maxf(0.0, cm.hp - 1.0)  # small hp cost to simulate risk
+		cm.gain_xp("repair", 10.0 * delta)
 	# combat with hostiles present
 	var hostiles := _hostiles_in_room(cm.room.id)
 	if not hostiles.is_empty():
 		_crew_fight(cm, hostiles, delta)
+		cm.gain_xp("fight", 5.0 * delta)
+
+func _station_skill(sid: String) -> String:
+	match sid:
+		"weapons":
+			return "weapons"
+		"shields":
+			return "shields"
+		"engines":
+			return "engines"
+		"piloting":
+			return "piloting"
+		"drones":
+			return "drones"
+		"medbay":
+			return "med"
+		"oxygen":
+			return "oxygen"
+	return ""
 
 func _move_crew(cm: CrewMember, delta: float) -> void:
 	if cm.path.is_empty():
@@ -527,6 +553,8 @@ func _process_boarders(delta: float) -> void:
 			# also damage hull slowly when in a room with a system-less interior? skip
 		else:
 			_crew_fight(defenders[0], [b], delta)
+			defenders[0].gain_xp("fight", 5.0 * delta)
+			b.gain_xp("fight", 5.0 * delta)
 	# remove dead boarders
 	boarders = boarders.filter(func(c): return c.alive())
 
@@ -748,7 +776,7 @@ func to_dict() -> Dictionary:
 		sys_d[sid] = {"level": s.level, "power": s.power, "health": s.health, "ion": s.ion}
 	var crew_d: Array = []
 	for cm in crew:
-		crew_d.append({"name": cm.name, "race": cm.race, "hp": cm.hp, "room": cm.room.id, "skills": cm.skills})
+		crew_d.append({"name": cm.name, "race": cm.race, "hp": cm.hp, "room": cm.room.id, "skills": cm.skills, "xp": cm.xp})
 	return {
 		"ship_id": ship_id,
 		"side": side,
@@ -836,7 +864,7 @@ static func from_dict(data: Dictionary) -> Ship:
 	var crew_d: Array = data.get("crew", [])
 	s.crew.clear()
 	for cd in crew_d:
-		var cm := CrewMember.new({"name": str(cd.get("name", "Crew")), "race": str(cd.get("race", "human")), "skills": cd.get("skills", {})})
+		var cm := CrewMember.new({"name": str(cd.get("name", "Crew")), "race": str(cd.get("race", "human")), "skills": cd.get("skills", {}), "xp": cd.get("xp", {})})
 		cm.hp = float(cd.get("hp", cm.max_hp))
 		var room_id: String = str(cd.get("room", ""))
 		if not s.rooms.has(room_id):

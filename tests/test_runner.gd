@@ -25,6 +25,7 @@ func run_tests() -> void:
 	_run_test("save round-trip", _test_save())
 	_run_test("battery", _test_battery())
 	_run_test("crew hire", _test_crew_hire())
+	_run_test("crew xp", _test_crew_xp())
 	if failures == 0:
 		print("ALL TESTS PASSED")
 	else:
@@ -271,5 +272,21 @@ func _test_crew_hire() -> bool:
 	GameState.new_run("kestrel")
 	GameState.restore(snap)
 	if GameState.player_ship.crew.size() != before + 1:
+		return false
+	return true
+
+func _test_crew_xp() -> bool:
+	var cm := CrewMember.new({"name": "X", "race": "human", "skills": {"weapons": 1}})
+	if cm.stat("weapons") != 1:
+		return false
+	cm.gain_xp("weapons", 100)
+	if cm.stat("weapons") != 2:
+		return false
+	cm.gain_xp("weapons", 500)
+	if cm.stat("weapons") > 2:
+		return false
+	if not cm.skill_bonus("weapons") > 1.5:
+		return false
+	if cm.stat("fight") != 0:
 		return false
 	return true

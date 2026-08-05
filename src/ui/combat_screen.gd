@@ -161,7 +161,7 @@ func _build_weapons_panel() -> void:
 
 func _build_crew_panel() -> void:
 	var panel := PanelContainer.new()
-	panel.position = Vector2(12, 8)
+	panel.position = Vector2(12, 110)
 	var vbox := VBoxContainer.new()
 	panel.add_child(vbox)
 	var title := Label.new()
@@ -171,18 +171,35 @@ func _build_crew_panel() -> void:
 	crew_buttons = {}
 	for cm in player.crew:
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(150, 30)
+		btn.custom_minimum_size = Vector2(170, 30)
 		btn.text = "%s (%s)" % [cm.name, cm.race]
+		btn.tooltip_text = _crew_skill_text(cm)
 		var captured: CrewMember = cm
 		btn.pressed.connect(_select_crew.bind(captured))
 		vbox.add_child(btn)
 		crew_buttons[cm] = btn
 	hud.add_child(panel)
 
+func _crew_skill_text(cm: CrewMember) -> String:
+	var parts: Array = []
+	for sk in cm.skills.keys():
+		var lv := cm.stat(sk)
+		if lv > 0:
+			parts.append("%s %s" % [sk.capitalize(), _roman(lv)])
+	for sk in cm.xp.keys():
+		if not parts.any(func(p): return str(p).begins_with(sk.capitalize() + " ")):
+			var lv := cm.stat(sk)
+			if lv > 0:
+				parts.append("%s %s" % [sk.capitalize(), _roman(lv)])
+	return "Skills:\n" + ("\n".join(parts) if not parts.is_empty() else "None")
+
+func _roman(lv: int) -> String:
+	return "I" if lv <= 1 else "II"
+
 func _build_teleporter_panel(_ignore) -> void:
 	if player.systems.has("teleporter"):
 		var panel := PanelContainer.new()
-		panel.position = Vector2(220, 8)
+		panel.position = Vector2(220, 110)
 		var vbox := VBoxContainer.new()
 		panel.add_child(vbox)
 		var title := Label.new()

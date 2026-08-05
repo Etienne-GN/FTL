@@ -17,7 +17,8 @@ var ship: Ship = null          # owning ship
 var hp: float = 1.0
 var max_hp: float = 1.0
 var room: Dictionary = {}       # room ref {id, rect}
-var skills := {}                # skill -> level (1..2)
+var skills := {}                # skill -> base level (0..1 from ship def)
+var xp := {}                    # skill -> accumulated xp towards higher levels
 var task: String = "idle"       # idle|man|repair|fight|move|teleport
 var target_room_id: String = ""
 var pos: Vector2 = Vector2.ZERO # position in ship-local tile coords
@@ -25,10 +26,14 @@ var path: Array = []            # queue of room ids to traverse
 var speed := 1.4                # tiles per second
 var hostile := false            # true when boarding an enemy ship
 
+const XP_PER_LEVEL := 100
+const MAX_LEVEL := 2
+
 func _init(cdef: Dictionary = {}):
 	race = cdef.get("race", "human")
 	name = cdef.get("name", _random_name())
 	skills = cdef.get("skills", {})
+	xp = cdef.get("xp", {})
 	var stats = RACES.get(race, RACES["human"])
 	max_hp = stats.get("hp", 1.0)
 	hp = max_hp
@@ -44,7 +49,12 @@ func alive() -> bool:
 	return hp > 0.0
 
 func stat(skill_key: String) -> int:
-	return int(skills.get(skill_key, 0))
+	return clampi(int(skills.get(skill_key, 0)) + int(xp.get(skill_key, 0)) / XP_PER_LEVEL, 0, MAX_LEVEL)
+
+func gain_xp(skill_key: String, amount: float) -> void:
+	if not xp.has(skill_key):
+		xp[skill_key] = 0
+	xp[skill_key] += int(amount)
 
 func skill_bonus(skill_key: String) -> float:
 	return 1.0 + 0.5 * stat(skill_key)
