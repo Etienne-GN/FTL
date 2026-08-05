@@ -121,17 +121,25 @@ so combat runs headless and is testable.
 - Random text events with choices; stores (system upgrades + weapons); ship selection
 - Boss fight at sector 8; victory unlocks ships; save/quit
 
-### Phase 6 — Hazards, boss, meta (in progress)
-- Nebulas, ion storms, suns, asteroids; flagship boss; bestiary; Android export pass
+### Phase 6 — Hazards, boss, meta ✅
+- Nebulas, ion storms, suns, asteroids as battle hazards
+- Flagship boss (crews + teleporter) at sector 8; victory unlocks ships
+- Meta: highest sector + unlocked ships persisted; menu progress display
+- Save/quit anytime incl. mid-battle; backup battery; powered door locks; crew XP
+- Sound effects (synthesized) + store economy (crew, fuel, repairs)
+
+### Phase 7 — Content, balance, release (in progress)
+- More events + sector theming; flagship multi-stage; difficulty tuning
+- Android export templates + release APK (needs SDK/templates installed)
 
 ---
 
 ## Controls (current desktop/touch build)
 
-- **Menu**: start a run (multiple unlockable ships)
-- **Sector map**: tap a highlighted beacon to jump (set jump range 1/2/3); rebel fleet advances each jump
-- **Combat**: tap a weapon button then enemy rooms to target; `-`/`+` power; crew panel then tap rooms to move; teleporter send/recall; **Pause**
-- **Events/Store**: pick a choice / buy upgrades or weapons
+- **Menu**: start a run (multiple unlockable ships); continue saved run
+- **Sector map**: tap a highlighted beacon to jump (set jump range 1/2/3); rebel fleet advances each jump; **Menu (save)** to quit
+- **Combat**: tap a weapon button then enemy rooms to target; `-`/`+` power; crew panel then tap rooms to move; teleporter send/recall; **Pause**, battery, lock doors, flee, quit (saves mid-battle)
+- **Events/Store**: pick a choice / buy upgrades, weapons, crew, fuel, repairs or the backup battery
 
 ---
 
@@ -166,6 +174,6 @@ shipping). Install with `adb install build/ftl.apk` or sideload the APK.
 1. ✅ Combat core, ship management, crew, drones/boarding, run structure
 2. ✅ Boss fight, ship unlocks, save/quit, run-flow integration
 3. ✅ Android export preset; full-screen flow + rendering verified headless
-4. **In progress:** hazards (nebulas/ion storms/suns/asteroids), more events,
-   difficulty tuning, meta/highscores UI, touch UX polish
-5. **Remaining:** install Android SDK/templates and produce a release APK
+4. ✅ Hazards, store economy, battery, door locks, crew XP, sound, meta
+5. **In progress:** more events/theming, flagship multi-stage, difficulty tuning, touch UX polish
+6. **Remaining:** install Android SDK/templates and produce a release APK
