@@ -114,10 +114,16 @@ func jump_to(beacon_id: String) -> bool:
 		return false
 	if not reachable().has(beacon_id):
 		return false
+	# you cannot jump into a beacon the rebel fleet already occupies
+	if beacon_map[beacon_id].col <= fleet_col:
+		return false
 	player_id = beacon_id
 	visited[player_id] = true
 	fleet_col += 1
 	return true
+
+func repel_fleet(columns: int) -> void:
+	fleet_col = maxi(-2, fleet_col - columns)
 
 func at_exit() -> bool:
 	return current().type == "exit"

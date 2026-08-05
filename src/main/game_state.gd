@@ -231,7 +231,13 @@ func attempt_jump(beacon_id: String, distance: int) -> bool:
 	# risky jumps may damage hull
 	if distance > 1 and randf() < 0.12 * (distance - 1):
 		player_ship.damage_hull(1.0)
-	pending_encounter = _make_encounter()
+	# the rebel fleet may catch your ship after jumping
+	if map.caught():
+		map.repel_fleet(2)          # fight them off; they fall back
+		spawn_enemy(sector + 1)     # tough intercept ship
+		pending_encounter = {"action": "battle", "fleet": true}
+	else:
+		pending_encounter = _make_encounter()
 	return true
 
 func _make_encounter() -> Dictionary:

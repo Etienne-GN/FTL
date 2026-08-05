@@ -27,6 +27,8 @@ func run_tests() -> void:
 	_run_test("crew hire", _test_crew_hire())
 	_run_test("crew xp", _test_crew_xp())
 	_run_test("door lock", _test_doors())
+	_run_test("fleet chase", _test_fleet_chase())
+	_run_test("fleet catch battle", _test_fleet_catch_battle())
 	if failures == 0:
 		print("ALL TESTS PASSED")
 	else:
@@ -317,3 +319,60 @@ func _test_doors() -> bool:
 		return false
 	p.boarders = []
 	return true
+
+func _test_fleet_chase() -> bool:
+	GameState.new_run("kestrel")
+	var m: SectorMap = GameState.map
+	GameState.player_ship.fuel = 99
+	var guard := 0
+	while guard < 60 and not m.at_exit():
+		guard += 1
+		var r: Array = m.reachable()
+		if r.is_empty():
+			break
+		if not m.jump_to(r[0]):
+			break
+	# jumping into a beacon the fleet occupies must be rejected
+	m.fleet_col = m.current().col
+	for t in m.reachable():
+		if m.beacon_map[t].col <= m.fleet_col:
+			if m.jump_to(t):
+				return false
+	# repel pushes the fleet back (must not advance)
+	var before: int = m.fleet_col
+	m.repel_fleet(2)
+	if m.fleet_col != maxi(-2, before - 2):
+		return false
+	if m.fleet_col > before:
+		return false
+	return true
+
+func _test_fleet_catch_battle() -> bool:
+	# Setting the fleet exactly at the player's beacon: the next forward jump
+	# must produce a fleet battle encounter (intercept fight), not a wander.
+	GameState.new_run("kestrel")
+	var m: SectorMap = GameState.map
+	GameState.player_ship.fuel = 99
+	# move the player partway so there is room to jump forward
+	var guard := 0
+	while guard < 30 and m.current().col < 3:
+		guard += 1
+		var r: Array = m.reachable()
+		if r.is_empty():
+			break
+		if not m.jump_to(r[0]):
+			break
+	var cur_col: int = m.current().col
+	m.fleet_col = cur_col   # fleet right behind: the next jump advances onto us
+	var fwd: Array = []
+	for t in m.reachable():
+		if m.beacon_map[t].col == cur_col + 1:
+			fwd.append(t)
+	if fwd.is_empty():
+		return true   # topology didn't give an adjacent forward beacon; skip
+	GameState.attempt_jump(fwd[0], 1)
+	if GameState.pending_encounter.get("action") != "battle":
+		return false
+	if not GameState.enemy_ship is Ship:
+		return false
+	return GameState.pending_encounter.get("fleet", false)
