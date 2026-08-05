@@ -199,6 +199,14 @@ func _on_combat_end(winner: Ship) -> void:
 		var reward := 12 + GameState.sector * 4
 		var fuel_add := 1
 		if GameState.pending_encounter.get("boss", false):
+			if GameState.boss_stage < 3:
+				GameState.boss_stage += 1
+				GameState.add_resources(fuel_add, 1, 1, reward)
+				GameState.enemy_ship = Ship.create(GameState._boss_def(GameState.boss_stage), "enemy")
+				GameState.pending_encounter = {"action": "battle", "boss": true}
+				SaveManager.save_run()
+				_show_combat()
+				return
 			SaveManager.save_meta()
 			_show_victory()
 			return

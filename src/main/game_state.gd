@@ -24,6 +24,7 @@ var victory_flag := false
 var last_result := ""
 var pending_encounter: Dictionary = {}   # {action, ...} at current beacon
 var highest_sector := 1
+var boss_stage := 0                       # 0 = not fought, 1..3 flagship stages
 var sector_theme: Dictionary = {}        # current sector's theme def
 
 func _pick_theme() -> Dictionary:
@@ -65,6 +66,7 @@ func new_run(ship_id: String = "kestrel") -> void:
 	fleet_offset = 0.0
 	jumped_this_sector = 0
 	pending_encounter = {}
+	boss_stage = 0
 	ship_ready.emit()
 
 func spawn_enemy(rank: int = 0) -> Ship:
@@ -135,7 +137,7 @@ func _enemy_def(rank: int) -> Dictionary:
 		"rooms": _enemy_rooms(),
 	}
 
-func _boss_def() -> Dictionary:
+func _boss_def(stage: int = 1) -> Dictionary:
 	var rooms := [
 		{"id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1},
 		{"id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 2},
@@ -147,32 +149,50 @@ func _boss_def() -> Dictionary:
 		{"id": "barracks", "system": null, "x": 1, "y": 5, "w": 4, "h": 2},
 		{"id": "teleporter", "system": "teleporter", "x": 6, "y": 4, "w": 3, "h": 2},
 	]
+	# stages escalate: more hull, heavier weapons, drones, more crew
+	var hull := 20 + (stage - 1) * 3
+	var crew_count := 4 + (stage - 1)
+	var weapons: Array = ["burst_laser_2", "artemis", "heavy_ion"]
+	if stage >= 2:
+		weapons = ["burst_laser_2", "artemis", "heavy_ion", "fire_beam"]
+	if stage >= 3:
+		weapons = ["halberd_beam", "burst_laser_2", "hull_missile", "ion_burst_1"]
+	var drones: Array = []
+	var drone_lvl := 0
+	if stage >= 2:
+		drones = ["combat_1", "defense_1"]
+		drone_lvl = 2
+	if stage >= 3:
+		drones = ["combat_2", "defense_2"]
+		drone_lvl = 3
+	var crew: Array = []
+	var names := ["Flagship Gunner", "Flagship Marine", "Flagship Engineer", "Flagship Pilot", "Flagship Medic", "Flagship Officer"]
+	for i in crew_count:
+		crew.append({"name": names[i % names.size()], "race": ["mantis", "mantis", "rock", "engi", "human", "human"][i % 6]})
+	var sys_cfg := {
+		"shields": {"level": 3},
+		"engines": {"level": 3},
+		"weapons": {"level": 3 + stage},
+		"oxygen": {"level": 1},
+		"teleporter": {"level": 2},
+	}
+	if drone_lvl > 0:
+		sys_cfg["drones"] = {"level": drone_lvl}
 	return {
 		"id": "flagship",
 		"name": "The Flagship",
 		"grid": {"w": 14, "h": 7},
-		"hull": 20,
-		"reactor": 8,
+		"hull": hull,
+		"reactor": 8 + stage,
 		"power": {"shields": 3, "engines": 2, "weapons": 3, "oxygen": 1, "teleporter": 1},
 		"start_fuel": 0,
 		"start_missiles": 0,
 		"start_drone_parts": 0,
 		"start_scrap": 0,
-		"crew": [
-			{"name": "Flagship 1", "race": "mantis"},
-			{"name": "Flagship 2", "race": "mantis"},
-			{"name": "Flagship 3", "race": "rock"},
-			{"name": "Flagship 4", "race": "engi"},
-		],
-		"systems": {
-			"shields": {"level": 3},
-			"engines": {"level": 3},
-			"weapons": {"level": 4},
-			"oxygen": {"level": 1},
-			"teleporter": {"level": 2},
-		},
-		"weapons": ["burst_laser_2", "artemis", "heavy_ion"],
-		"drones": [],
+		"crew": crew,
+		"systems": sys_cfg,
+		"weapons": weapons,
+		"drones": drones,
 		"rooms": rooms,
 	}
 
@@ -252,7 +272,8 @@ func _make_encounter() -> Dictionary:
 			return {"action": "store"}
 		"exit":
 			if sector >= 8:
-				enemy_ship = Ship.create(_boss_def(), "enemy")
+				boss_stage = 1
+				enemy_ship = Ship.create(_boss_def(1), "enemy")
 				in_battle = true
 				enemy_changed.emit()
 				return {"action": "battle", "boss": true}
@@ -340,6 +361,7 @@ func snapshot() -> Dictionary:
 		"map": map.to_dict() if map != null else {},
 		"sector": sector,
 		"theme": sector_theme,
+		"boss_stage": boss_stage,
 		"in_battle": in_battle,
 		"pending_encounter": pending_encounter,
 	}
@@ -356,6 +378,7 @@ func restore(data: Dictionary) -> void:
 		map.generate(sector)
 	beacons = map.beacons
 	pending_encounter = data.get("pending_encounter", {})
+	boss_stage = int(data.get("boss_stage", 0))
 	var ed: Dictionary = data.get("enemy", {})
 	enemy_ship = Ship.from_dict(ed) if not ed.is_empty() else null
 	in_battle = bool(data.get("in_battle", false))
