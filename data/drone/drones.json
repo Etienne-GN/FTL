@@ -1,0 +1,94 @@
+{
+  "drones": [
+    {
+      "id": "combat_1",
+      "name": "Combat Drone I",
+      "type": "combat",
+      "power": 2,
+      "cooldown": 5.0,
+      "damage": 2.0,
+      "shield_bust": 1,
+      "description": "Auto-fires at the enemy ship.",
+      "price": 25
+    },
+    {
+      "id": "combat_2",
+      "name": "Combat Drone II",
+      "type": "combat",
+      "power": 3,
+      "cooldown": 3.5,
+      "damage": 2.0,
+      "extra_shot": 1,
+      "description": "Fires a paralyzing blast of energy.",
+      "price": 50
+    },
+    {
+      "id": "defense_1",
+      "name": "Defense Drone I",
+      "type": "defense",
+      "power": 2,
+      "interceptor": "missile",
+      "description": "Shoots down incoming missiles.",
+      "price": 40
+    },
+    {
+      "id": "defense_2",
+      "name": "Defense Drone II",
+      "type": "defense",
+      "power": 2,
+      "interceptor": "any",
+      "description": "Shoots down most incoming projectiles.",
+      "price": 60
+    },
+    {
+      "id": "repair_1",
+      "name": "Method Last Repair Drone",
+      "type": "repair",
+      "power": 1,
+      "repair_rate": 1.0,
+      "description": "Auto-repairs hull damage over time.",
+      "price": 30
+    },
+    {
+      "id": "shield_drone",
+      "name": "Shield Drone",
+      "type": "shield",
+      "power": 2,
+      "shield_bubble_add": 1,
+      "description": "Adds an extra shield bubble.",
+      "price": 35
+    },
+    {
+      "id": "beam_drone_1",
+      "name": "Beam Drone I",
+      "type": "beam",
+      "power": 2,
+      "cooldown": 8.0,
+      "beam_length": 2,
+      "damage": 1.0,
+      "description": "Fires a mining beam.",
+      "price": 40
+    },
+    {
+      "id": "hull_buster",
+      "name": "Hull Buster Drone",
+      "type": "combat",
+      "power": 2,
+      "cooldown": 6.0,
+      "damage": 3.0,
+      "shield_color": 2,
+      "description": "Powerful anti-hull drone.",
+      "price": 55
+    },
+    {
+      "id": "fire_drone",
+      "name": "Fire Drone",
+      "type": "fire",
+      "power": 2,
+      "cooldown": 9.0,
+      "fire_chance": 1.0,
+      "description": "Sets fire to enemy rooms.",
+      "price": 40
+    }
+  ]
+}

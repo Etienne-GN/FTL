@@ -1,0 +1,82 @@
+{
+  "ships": [
+    {
+      "id": "kestrel",
+      "name": "The Kestrel",
+      "desc": "The Ceremony-class cruiser. Balanced and dependable.",
+      "grid": { "w": 14, "h": 7 },
+      "hull": 6,
+      "reactor": 4,
+      "start_fuel": 6,
+      "start_missiles": 5,
+      "start_drone_parts": 0,
+      "start_scrap": 0,
+      "crew": [
+        { "name": "Jack", "race": "human", "skills": { "piloting": 1 } },
+        { "name": "Kira", "race": "human", "skills": { "weapons": 1 } }
+      ],
+      "systems": {
+        "shields": { "level": 1 },
+        "engines": { "level": 2 },
+        "weapons": { "level": 2 },
+        "oxygen": { "level": 1 },
+        "medbay": { "level": 1 },
+        "doors": { "level": 1 },
+        "piloting": { "level": 1 }
+      },
+      "weapons": ["burst_laser_2", "basic_laser"],
+      "drones": [],
+      "rooms": [
+        { "id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1 },
+        { "id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 1 },
+        { "id": "doors", "system": "doors", "x": 11, "y": 0, "w": 3, "h": 1 },
+        { "id": "weapons", "system": "weapons", "x": 0, "y": 2, "w": 4, "h": 2 },
+        { "id": "medbay", "system": "medbay", "x": 5, "y": 2, "w": 2, "h": 2 },
+        { "id": "oxygen", "system": "oxygen", "x": 8, "y": 2, "w": 2, "h": 2 },
+        { "id": "engines", "system": "engines", "x": 11, "y": 2, "w": 3, "h": 2 },
+        { "id": "barracks", "system": null, "x": 1, "y": 5, "w": 4, "h": 2 },
+        { "id": "drone", "system": "drones", "x": 6, "y": 4, "w": 3, "h": 2 },
+        { "id": "teleporter", "system": "teleporter", "x": 9, "y": 4, "w": 3, "h": 2 }
+      ]
+    },
+    {
+      "id": "engi_a",
+      "name": "The Torus",
+      "desc": "Engi ship with a drone arm and great reactor.",
+      "max": { "w": 14, "h": 7 },
+      "hull": 6,
+      "reactor": 5,
+      "start_fuel": 6,
+      "start_missiles": 5,
+      "start_drone_parts": 4,
+      "start_scrap": 0,
+      "crew": [
+        { "name": "Karo", "race": "engi", "skills": { "drones": 1 } }
+      ],
+      "systems": {
+        "shields": { "level": 1 },
+        "engines": { "level": 2 },
+        "drones": { "level": 2 },
+        "weapons": { "level": 2 },
+        "oxygen": { "level": 1 },
+        "medbay": { "level": 1 },
+        "doors": { "level": 1 },
+        "piloting": { "level": 1 }
+      },
+      "weapons": [ "basic_laser" ],
+      "drones": [ "combat_1" ],
+      "rooms": [
+        { "id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1 },
+        { "id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 1 },
+        { "id": "doors", "system": "doors", "x": 11, "y": 0, "w": 3, "h": 1 },
+        { "id": "weapons", "system": "weapons", "x": 0, "y": 2, "w": 4, "h": 2 },
+        { "id": "drones", "system": "drones", "x": 5, "y": 2, "w": 2, "h": 2 },
+        { "id": "medbay", "system": "medbay", "x": 8, "y": 2, "w": 2, "h": 2 },
+        { "id": "engines", "system": "engines", "x": 11, "y": 2, "w": 3, "h": 2 },
+        { "id": "oxygen", "system": "oxygen", "x": 0, "y": 5, "w": 4, "h": 2 },
+        { "id": "barracks", "system": null, "x": 4, "y": 5, "w": 3, "h": 2 },
+        { "id": "teleporter", "system": "teleporter", "x": 8, "y": 5, "w": 3, "h": 2 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+# Godot 4 specific
+.godot/
+/android/
+*.import
+.import/
+export_presets.cfg
+export_presets.json
+*.translation
+
+# Godot temp files
+.uid/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.tmp
+*.tscn~
