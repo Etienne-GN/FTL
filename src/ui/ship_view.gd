@@ -25,21 +25,36 @@ var ship: Ship
 var flipped := true                 # enemy ship drawn mirrored (rooms reversed)
 var tile := Ship.TILE
 var hull_texture: Texture2D = null
+var sprite_atlas: AtlasTexture = null
 
 func setup(s: Ship, is_enemy: bool = false) -> void:
 	ship = s
 	flipped = is_enemy
-	var path := "res://assets/sprites/ships/%s.png" % ship.ship_id
+	var filename := ""
+	match ship.ship_id:
+		"kestrel", "kestrel_b":
+			filename = "PC _ Computer - FTL_ Faster Than Light - Playable Ships - Kestrel Cruiser.png"
+		"engi_a", "engi_b":
+			filename = "PC _ Computer - FTL_ Faster Than Light - Playable Ships - Engi Cruiser.png"
+		"mantis_raider":
+			filename = "PC _ Computer - FTL_ Faster Than Light - Playable Ships - Mantis Cruiser.png"
+		_:
+			filename = "PC _ Computer - FTL_ Faster Than Light - Playable Ships - Kestrel Cruiser.png"
+	var path := "res://assets/sprites/ships/%s" % filename
 	if ResourceLoader.exists(path):
 		hull_texture = load(path)
+		if hull_texture != null:
+			sprite_atlas = AtlasTexture.new()
+			sprite_atlas.atlas = hull_texture
+			# The first ship sprite variant on FTL sheets is typically top-left (~180x110 area)
+			sprite_atlas.region = Rect2(0, 0, minf(hull_texture.get_width(), 320), minf(hull_texture.get_height(), 180))
 
 func _draw() -> void:
 	if ship == null:
 		return
-	if hull_texture != null:
-		var sz := hull_texture.get_size()
-		var dest_rect := Rect2(Vector2.ZERO, Vector2(ship.grid.x * tile, ship.grid.y * tile))
-		draw_texture_rect(hull_texture, dest_rect, false)
+	if sprite_atlas != null:
+		var dest_rect := Rect2(Vector2(-20, -20), Vector2(ship.grid.x * tile + 40, ship.grid.y * tile + 40))
+		draw_texture_rect(sprite_atlas, dest_rect, false)
 	for room_id in ship.room_order:
 		_draw_room(room_id)
 	_draw_crew()
