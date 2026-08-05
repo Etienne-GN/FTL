@@ -302,8 +302,24 @@ func stock_systems() -> Array:
 	return ["shields", "engines", "weapons", "oxygen", "medbay", "drones", "teleporter"]
 
 func stock_weapons() -> Array:
-	var pool := ["basic_laser", "burst_laser_1", "burst_laser_2", "emp_laser", "artemis", "fire_beam", "flak_1", "heavy_ion"]
+	# Pool broadens with sector rank; later sectors offer rarer, stronger guns.
+	var tiers: Array = [
+		["basic_laser", "emp_laser", "artemis", "fire_beam"],
+		["basic_laser", "burst_laser_1", "artemis", "ion_burst_1", "flak_1", "fire_bomb"],
+		["burst_laser_1", "burst_laser_2", "ion_burst_1", "heavy_ion", "fire_bomb", "chargelaser_1"],
+		["burst_laser_2", "halberd_beam", "hull_missile", "burst_flack_v", "fire_beam", "psi_beam"],
+	]
+	var tier := clampi(int(sector / 2), 0, 3)
+	var pool: Array = tiers[tier]
 	var n := 3
+	var out: Array = []
+	for i in range(n):
+		out.append(pool[randi() % pool.size()])
+	return out
+
+func stock_drones() -> Array:
+	var pool := ["combat_1", "defense_1", "repair_1", "shield_drone", "combat_2"]
+	var n := 2
 	var out: Array = []
 	for i in range(n):
 		out.append(pool[randi() % pool.size()])

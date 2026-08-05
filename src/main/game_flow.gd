@@ -284,6 +284,13 @@ func _show_store() -> void:
 		b.custom_minimum_size = Vector2(560, 40)
 		b.pressed.connect(_buy_weapon.bind(wid, cost))
 		box.add_child(b)
+	for did in GameState.stock_drones():
+		var cost := int(Content.get_drone(did).get("price", 30))
+		var b := Button.new()
+		b.text = "Buy %s [%d scrap]" % [Content.get_drone(did).get("name", did), cost]
+		b.custom_minimum_size = Vector2(560, 40)
+		b.pressed.connect(_buy_drone.bind(did, cost))
+		box.add_child(b)
 	# provisions
 	var p := GameState.player_ship
 	if p.hull < p.hull_max:
@@ -328,6 +335,13 @@ func _buy_weapon(wid: String, cost: int) -> void:
 	if GameState.player_ship.scrap >= cost and GameState.player_ship.weapons.size() < 4:
 		GameState.player_ship.scrap -= cost
 		GameState.player_ship.weapons.append(WeaponState.new(Content.get_weapon(wid)))
+		_sfx("purchase")
+		_show_store()
+
+func _buy_drone(did: String, cost: int) -> void:
+	if GameState.player_ship.scrap >= cost and GameState.player_ship.drones.size() < 3:
+		GameState.player_ship.scrap -= cost
+		GameState.player_ship.drones.append(DroneState.new(Content.get_drone(did)))
 		_sfx("purchase")
 		_show_store()
 
