@@ -46,8 +46,7 @@ func setup(s: Ship, is_enemy: bool = false) -> void:
 		if hull_texture != null:
 			sprite_atlas = AtlasTexture.new()
 			sprite_atlas.atlas = hull_texture
-			# The first ship sprite variant on FTL sheets is typically top-left (~180x110 area)
-			sprite_atlas.region = Rect2(0, 0, minf(hull_texture.get_width(), 320), minf(hull_texture.get_height(), 180))
+			sprite_atlas.region = Rect2(0, 0, hull_texture.get_width(), hull_texture.get_height())
 
 func _draw() -> void:
 	if ship == null:
