@@ -16,7 +16,7 @@ func save_run() -> void:
 func save_meta() -> void:
 	var unlocked := ["kestrel"]
 	if GameState.victory_flag:
-		unlocked = ["kestrel", "engi_a"]
+		unlocked = ["kestrel", "engi_a", "mantis_raider"]
 	var meta := {"unlocked": unlocked, "highest_sector": GameState.highest_sector}
 	var file := FileAccess.open(META_PATH, FileAccess.WRITE)
 	if file:

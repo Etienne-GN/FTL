@@ -42,6 +42,15 @@ func _show_menu() -> void:
 	sub.text = "open reimplementation -- Android"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(sub)
+	var prog := Label.new()
+	var best_sector := 1
+	var meta_file := JSONHelpers.load_json("user://meta.save")
+	if not meta_file.is_empty():
+		best_sector = int(meta_file.get("highest_sector", 1))
+	prog.text = "Best run: Sector %d  |  Ships unlocked: %d" % [best_sector, SaveManager.load_meta().size()]
+	prog.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prog.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(prog)
 	var continue_btn := Button.new()
 	continue_btn.text = "Continue Run" if SaveManager.has_save() else "New Game"
 	continue_btn.custom_minimum_size = Vector2(260, 48)

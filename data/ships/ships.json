@@ -44,7 +44,7 @@
       "id": "engi_a",
       "name": "The Torus",
       "desc": "Engi ship with a drone arm and great reactor.",
-      "max": { "w": 14, "h": 7 },
+      "grid": { "w": 14, "h": 7 },
       "hull": 6,
       "reactor": 6,
       "power": { "shields": 1, "engines": 1, "drones": 2, "weapons": 1, "oxygen": 1 },
@@ -78,6 +78,48 @@
         { "id": "oxygen", "system": "oxygen", "x": 0, "y": 5, "w": 4, "h": 2 },
         { "id": "barracks", "system": null, "x": 4, "y": 5, "w": 3, "h": 2 },
         { "id": "teleporter", "system": "teleporter", "x": 8, "y": 5, "w": 3, "h": 2 }
+      ]
+    },
+    {
+      "id": "mantis_raider",
+      "name": "The Bloodwing",
+      "desc": "A mantis hunter-killer built for boarding action.",
+      "grid": { "w": 14, "h": 7 },
+      "hull": 6,
+      "reactor": 4,
+      "power": { "shields": 1, "engines": 1, "weapons": 2, "oxygen": 1, "teleporter": 1 },
+      "start_fuel": 6,
+      "start_missiles": 4,
+      "start_drone_parts": 0,
+      "start_scrap": 0,
+      "crew": [
+        { "name": "Rak", "race": "mantis", "skills": { "combat": 1 } },
+        { "name": "Sho", "race": "mantis", "skills": { "combat": 1 } },
+        { "name": "Tess", "race": "human", "skills": { "piloting": 1 } }
+      ],
+      "systems": {
+        "shields": { "level": 1 },
+        "engines": { "level": 2 },
+        "weapons": { "level": 2 },
+        "oxygen": { "level": 1 },
+        "medbay": { "level": 1 },
+        "doors": { "level": 1 },
+        "piloting": { "level": 1 },
+        "teleporter": { "level": 2 }
+      },
+      "weapons": ["burst_laser_1"],
+      "drones": [],
+      "rooms": [
+        { "id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1 },
+        { "id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 2 },
+        { "id": "doors", "system": "doors", "x": 11, "y": 0, "w": 3, "h": 1 },
+        { "id": "weapons", "system": "weapons", "x": 0, "y": 2, "w": 4, "h": 2 },
+        { "id": "medbay", "system": "medbay", "x": 5, "y": 2, "w": 2, "h": 2 },
+        { "id": "oxygen", "system": "oxygen", "x": 8, "y": 2, "w": 2, "h": 2 },
+        { "id": "engines", "system": "engines", "x": 11, "y": 2, "w": 3, "h": 2 },
+        { "id": "teleporter", "system": "teleporter", "x": 1, "y": 5, "w": 4, "h": 2 },
+        { "id": "barracks", "system": null, "x": 6, "y": 4, "w": 3, "h": 2 },
+        { "id": "drone", "system": "drones", "x": 9, "y": 4, "w": 3, "h": 2 }
       ]
     }
   ]
