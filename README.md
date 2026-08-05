@@ -42,12 +42,12 @@ Design choices for a faithful feel:
 ```
 project.godot          Godot project + autoloads
 src/
-  main/                GameState, SaveManager, main scene/loop
+  main/                GameState, SaveManager, GameFlow (screen state machine)
   combat/              Ship, SystemState, Crew, Weapon, Drone, CombatManager
-  fleet/               (sector map, rebel fleet)
-  events/              (event system)
+  fleet/               SectorMap (beacon grid, rebel fleet)
+  events/              (event outcomes) — driven by data/events
   meta/                (ship unlocks, highscores)
-  ui/                  ShipView (rendering), HUD
+  ui/                  ShipView, MapView, CombatScreen
   util/                ContentDB autoload, JSON helpers
 data/
   systems/             system definitions + per-level stats
@@ -55,7 +55,7 @@ data/
   drone/               drone definitions
   ships/               player ship layouts
   events/              random event definitions
-tests/                 headless test-runner scenes
+tests/                 headless test-runner + integration flow scenes
 assets/                shaders, fonts, icons
 ```
 
@@ -107,29 +107,31 @@ so combat runs headless and is testable.
 - Real-time with **pause**; win/lose with rewards
 - Headless unit tests passing
 
-### Phase 2 — Ship management (in progress)
-- Power allocation UI, system status, hull/O2 readouts
+### Phase 2 — Ship management ✅
+- Ship interior rendered live; power allocation, ship systems, hull/O2 bars
 
-### Phase 3 — Crew
-- Crew entities, movement, manning, repair, fires, breaches, O2, medbay
+### Phase 3 — Crew ✅
+- Crew pathfinding & movement, manning, auto-repair, firefighting, fires, breaches, O2, medbay, crew-vs-crew combat
 
-### Phase 4 — Drones + boarding/teleporter
-- Combat/defense drones, drone parts, teleporter, boarders
+### Phase 4 — Drones + boarding/teleporter ✅
+- Combat/defense drones, drone parts; teleporter send/recall boarders; enemy boarding AI
 
-### Phase 5 — Run structure
-- Sector map, rebel fleet advance, jumps (1/2/3), random events, stores
+### Phase 5 — Run structure ✅
+- Generated sector map with branching beacons, rebel fleet advance, jumps (1/2/3)
+- Random text events with choices; stores (system upgrades + weapons); ship selection
+- Boss fight at sector 8; victory unlocks ships; save/quit
 
-### Phase 6 — Hazards, boss, meta
-- Nebulas, ion storms, suns, asteroids; flagship boss; ship unlocks; save/quit
+### Phase 6 — Hazards, boss, meta (in progress)
+- Nebulas, ion storms, suns, asteroids; flagship boss; bestiary; Android export pass
 
 ---
 
 ## Controls (current desktop/touch build)
 
-- **Tap enemy ship room** (after selecting a weapon) to target it — auto-fires on charge
-- **Tap player ship room** to select crew, then tap a room to move them
-- **Systems panel**: `-` / `+` to allocate reactor power
-- **Pause** toggle top-right
+- **Menu**: start a run (multiple unlockable ships)
+- **Sector map**: tap a highlighted beacon to jump (set jump range 1/2/3); rebel fleet advances each jump
+- **Combat**: tap a weapon button then enemy rooms to target; `-`/`+` power; crew panel then tap rooms to move; teleporter send/recall; **Pause**
+- **Events/Store**: pick a choice / buy upgrades or weapons
 
 ---
 
@@ -137,19 +139,33 @@ so combat runs headless and is testable.
 
 ```
 godot --path .                      # play in editor/default viewport
-godot --headless res://tests/test_runner.tscn   # headless tests
+godot --headless res://tests/test_runner.tscn   # headless unit tests
+godot --headless res://tests/flow.tscn          # end-to-end flow test
 ```
 
-Requires Godot **4.7.x**. Android export settings are configured via the
-editor (landscape, stretch `canvas_items`); the Android SDK/export template is
-needed to produce an APK.
+Requires Godot **4.7.x**.
+
+## Building the Android APK
+
+`export_presets.cfg` is already configured (landscape, immersive mode,
+arm64). To produce an APK you need:
+
+1. **Android SDK + NDK + JDK** installed locally.
+2. **Godot Android export templates**: in the Godot editor menu
+   *Editor → Manage Export Templates → Download and Install*.
+3. Open the project in Godot → *Project → Export → Android* → point the
+   preset at your SDK path → *Export Project* → `build/ftl.apk`.
+
+Package id is `com.example.ftl` (change in `export_presets.cfg` before
+shipping). Install with `adb install build/ftl.apk` or sideload the APK.
 
 ---
 
 ## Roadmap
 
-1. Finish ship-management UX (power, crew, O2 readouts).
-2. Implement crew behaviour (Phase 3,4).
-3. Implement run structure (sector map, events, stores).
-4. Hazards + flagship boss + meta progression.
-5. Android export pass + touch polish.
+1. ✅ Combat core, ship management, crew, drones/boarding, run structure
+2. ✅ Boss fight, ship unlocks, save/quit, run-flow integration
+3. ✅ Android export preset; full-screen flow + rendering verified headless
+4. **In progress:** hazards (nebulas/ion storms/suns/asteroids), more events,
+   difficulty tuning, meta/highscores UI, touch UX polish
+5. **Remaining:** install Android SDK/templates and produce a release APK

@@ -34,13 +34,15 @@ func start_battle(p: Ship, e: Ship, sector: int) -> void:
 	GameState.paused = false
 	_ended = false
 	_build_background()
-	combat = CombatManager.new(player, enemy)
+	combat = CombatManager.new(player, enemy, GameState.pending_encounter.get("hazard", ""))
 	GameState.in_battle = true
 	_build_starfield()
 	_build_ships()
 	_build_hud()
 	_setup_signals()
 	_refresh_ui()
+	if combat.hazard != "":
+		_log("Hazard: %s zone." % combat.hazard)
 	queue_redraw()
 
 # ---------- scene construction ----------

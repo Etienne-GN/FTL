@@ -160,7 +160,7 @@ func _make_encounter() -> Dictionary:
 	match b.type:
 		"battle":
 			spawn_enemy(sector)
-			return {"action": "battle"}
+			return {"action": "battle", "hazard": b.get("hazard", "")}
 		"event":
 			return {"action": "event", "event": Content.random_event()}
 		"store":
@@ -191,6 +191,16 @@ func resolve_event(choice_index: int) -> String:
 		return "Battle!"
 	if outcome.get("crew_lose", 0) > 0 and not player_ship.crew.is_empty():
 		var removed: Array = player_ship.crew.pop_back()
+	if outcome.get("crew_gain", 0) > 0:
+		var new_crew := CrewMember.new({"race": "mantis", "name": "Slicer"})
+		var start_room: String = player_ship.system_room_id("medbay")
+		if start_room == "":
+			start_room = player_ship.random_room_id()
+		new_crew.ship = player_ship
+		new_crew.assign_room(player_ship.rooms[start_room])
+		new_crew.pos = player_ship._room_center_tile(start_room)
+		new_crew.task = "man"
+		player_ship.crew.append(new_crew)
 	pending_encounter = {}
 	return "Resolved."
 
@@ -214,3 +224,28 @@ func stock_weapons() -> Array:
 	for i in range(n):
 		out.append(pool[randi() % pool.size()])
 	return out
+
+# ----- Save snapshot (save/quit anytime) -----
+
+func snapshot() -> Dictionary:
+	return {
+		"ship": player_ship.to_dict() if player_ship != null else {},
+		"map": map.to_dict() if map != null else {},
+		"sector": sector,
+		"in_battle": in_battle,
+		"pending_encounter": pending_encounter,
+	}
+
+func restore(data: Dictionary) -> void:
+	player_ship = Ship.from_dict(data.get("ship", {}))
+	sector = int(data.get("sector", 1))
+	var md: Dictionary = data.get("map", {})
+	map = SectorMap.from_dict(md) if not md.is_empty() else (SectorMap.new() as SectorMap)
+	if map.beacons.is_empty():
+		map.generate(sector)
+	beacons = map.beacons
+	pending_encounter = data.get("pending_encounter", {})
+	in_battle = bool(data.get("in_battle", false))
+	enemy_ship = null
+	run_active = true
+	paused = false

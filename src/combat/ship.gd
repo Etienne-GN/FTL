@@ -688,3 +688,84 @@ func refresh_after_sector() -> void:
 	charge_jump()
 	for sys in systems.values():
 		sys.ion = 0
+
+# ----- Serialization (save/quit) -----
+
+func to_dict() -> Dictionary:
+	var sys_d := {}
+	for sid in systems:
+		var s: SystemState = systems[sid]
+		sys_d[sid] = {"level": s.level, "power": s.power, "health": s.health, "ion": s.ion}
+	var crew_d: Array = []
+	for cm in crew:
+		crew_d.append({"name": cm.name, "race": cm.race, "hp": cm.hp, "room": cm.room.id, "skills": cm.skills})
+	return {
+		"ship_id": ship_id,
+		"side": side,
+		"hull": hull,
+		"reactor": reactor,
+		"battery": battery,
+		"fuel": fuel,
+		"missiles": missiles,
+		"drone_parts": drone_parts,
+		"scrap": scrap,
+		"systems": sys_d,
+		"weapons": _weapon_ids(),
+		"drones": _drone_ids(),
+		"crew": crew_d,
+		"shield_bubbles": shield_bubbles,
+		"jump_charge": jump_charge,
+	}
+
+func _weapon_ids() -> Array:
+	var out: Array = []
+	for w in weapons:
+		out.append(w.id)
+	return out
+
+func _drone_ids() -> Array:
+	var out: Array = []
+	for d in drones:
+		out.append(d.id)
+	return out
+
+static func from_dict(data: Dictionary) -> Ship:
+	var def := Content.get_ship(str(data.get("ship_id", "kestrel")))
+	var s := Ship.create(def, str(data.get("side", "player")))
+	s.hull = float(data.get("hull", s.hull_max))
+	s.hull = minf(s.hull, s.hull_max)
+	s.reactor = int(data.get("reactor", s.reactor))
+	s.battery = float(data.get("battery", 0.0))
+	s.fuel = int(data.get("fuel", 0))
+	s.missiles = int(data.get("missiles", 0))
+	s.drone_parts = int(data.get("drone_parts", 0))
+	s.scrap = int(data.get("scrap", 0))
+	var sys_d: Dictionary = data.get("systems", {})
+	for sid in sys_d:
+		if s.systems.has(sid):
+			var st: SystemState = s.systems[sid]
+			var sd: Dictionary = sys_d[sid]
+			st.set_level(int(sd.get("level", st.level)))
+			st.power = int(sd.get("power", 0))
+			st.health = int(sd.get("health", 1))
+			st.ion = int(sd.get("ion", 0))
+	# weapons/drones already rebuilt from def; restore ids is implicit
+	var crew_d: Array = data.get("crew", [])
+	s.crew.clear()
+	for cd in crew_d:
+		var cm := CrewMember.new({"name": str(cd.get("name", "Crew")), "race": str(cd.get("race", "human")), "skills": cd.get("skills", {})})
+		cm.hp = float(cd.get("hp", cm.max_hp))
+		var room_id: String = str(cd.get("room", ""))
+		if not s.rooms.has(room_id):
+			room_id = s.room_order[0]
+		cm.ship = s
+		cm.assign_room(s.rooms[room_id])
+		cm.pos = s._room_center_tile(room_id)
+		cm.task = "man"
+		s.crew.append(cm)
+	s.shield_bubbles = int(data.get("shield_bubbles", 0))
+	s.shield_max = mini(s.shield_max, s.systems.shields.stat("levels", 0) + s._shield_drone_bonus())
+	s.jump_charge = float(data.get("jump_charge", 0.0))
+	if s.jump_charge >= 1.0:
+		s.jump_ready = true
+	return s

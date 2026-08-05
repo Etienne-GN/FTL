@@ -15,10 +15,13 @@ var projectiles: Array = []       # flying projectiles
 var time := 0.0
 var enemy_think := 0.0
 var combat_active := false
+var hazard := ""
+var _hazard_tick := 0.0
 
-func _init(p: Ship, e: Ship):
+func _init(p: Ship, e: Ship, hazard_id: String = ""):
 	player = p
 	enemy = e
+	hazard = hazard_id
 	combat_active = true
 
 func tick(delta: float) -> void:
@@ -31,7 +34,33 @@ func tick(delta: float) -> void:
 	_enemy_ai(delta)
 	_drones(delta)
 	_advance_projectiles(delta)
+	_process_hazard(delta)
 	_check_end()
+
+func _process_hazard(delta: float) -> void:
+	if hazard == "":
+		return
+	_hazard_tick += delta
+	var interval := 2.5
+	if _hazard_tick < interval:
+		return
+	_hazard_tick = 0.0
+	match hazard:
+		"asteroid":
+			# stray rock: may hit either ship
+			var target := enemy if randf() < 0.5 else player
+			if target.shield_bubbles > 0:
+				target.damage_bubble()
+			else:
+				target.apply_room_hit(target.random_room_id(), 1.0, {"fire_chance": 0.0, "breach_chance": 0.05})
+		"sun":
+			for s in [player, enemy]:
+				s.rooms[s.random_room_id()].fire = minf(1.0, s.rooms[s.random_room_id()].fire + 0.5)
+		"ion":
+			for s in [player, enemy]:
+				if not s.systems.is_empty():
+					var sys: SystemState = s.systems[s.systems.keys()[randi() % s.systems.size()]]
+					sys.ion = maxi(sys.ion, 1)
 
 func _player_fire() -> void:
 	for w in player.weapons_online():
@@ -204,8 +233,10 @@ func _resolve_projectile(p: Dictionary) -> void:
 	var target: Ship = p.target
 	var wdef: Dictionary = p.weapon
 	var room_id: String = p.room
-	# dodge
+	# dodge (nebulas muddy the sensors)
 	var evade := target.dodge_chance()
+	if hazard == "nebula":
+		evade = maxf(0.0, evade - 12.0)
 	if randf() * 100.0 < evade:
 		ship_dodged.emit(target)
 		return

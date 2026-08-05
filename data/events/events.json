@@ -4,7 +4,7 @@
       "id": "distress_signal",
       "text": "You pick up a distress signal from a merchant ship. Its engines are dead.",
       "choices": [
-        { "text": "Help them (repair)", "outcome": { "scrap": 8, "fuel": 2 } },
+        { "text": "Help them (spend fuel)", "outcome": { "scrap": 12, "fuel": 1 } },
         { "text": "Demand payment for repairs", "outcome": { "scrap": 15 } },
         { "text": "Leave them to drift", "outcome": { } }
       ]
@@ -24,6 +24,46 @@
         { "text": "Fight them off", "outcome": { "battle": 2 } },
         { "text": "Pay them off", "outcome": { "scrap": -15 } },
         { "text": "Give them a crew member", "outcome": { "crew_lose": 1 } }
+      ]
+    },
+    {
+      "id": "pirate_cache",
+      "text": "You find a hidden cache of pirate supplies on a dead asteroid.",
+      "choices": [
+        { "text": "Take it all", "outcome": { "scrap": 25, "missiles": 3 } },
+        { "text": "Booby-trap it for later", "outcome": { "scrap": 8 } }
+      ]
+    },
+    {
+      "id": "merc_fighters",
+      "text": "A group of mercenary fighters offers to join you... for a price.",
+      "choices": [
+        { "text": "Hire mantis fighters", "outcome": { "scrap": -40, "crew_gain": 1 } },
+        { "text": "Decline", "outcome": { } }
+      ]
+    },
+    {
+      "id": "fuel_deal",
+      "text": "A fuel platform offers you a discounted tank of fuel for your help defending it.",
+      "choices": [
+        { "text": "Defend the platform", "outcome": { "battle": 1, "fuel": 3 } },
+        { "text": "Buy fuel", "outcome": { "scrap": -20, "fuel": 4 } }
+      ]
+    },
+    {
+      "id": "plague_ship",
+      "text": "You hail a ship crippled by a strange plague. Its crew begs for medicine.",
+      "choices": [
+        { "text": "Share your stores", "outcome": { "fuel": 2, "scrap": 10 } },
+        { "text": "Salvage their wreck", "outcome": { "scrap": 30, "damage": 1 } }
+      ]
+    },
+    {
+      "id": "granite",
+      "text": "Sensors pick up a metallic asteroid rich in rare minerals.",
+      "choices": [
+        { "text": "Mine it", "outcome": { "scrap": 20, "fuel": 1 } },
+        { "text": "Push past", "outcome": { } }
       ]
     }
   ]

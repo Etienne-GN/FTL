@@ -22,6 +22,7 @@ func run_tests() -> void:
 	_run_test("jump flow", _test_jump())
 	_run_test("run completion", _test_run_completion())
 	_run_test("boss encounter", _test_boss())
+	_run_test("save round-trip", _test_save())
 	if failures == 0:
 		print("ALL TESTS PASSED")
 	else:
@@ -197,3 +198,23 @@ func _test_boss() -> bool:
 	GameState.map.player_id = exit_b.id
 	GameState.pending_encounter = GameState._make_encounter()
 	return GameState.pending_encounter.get("boss", false) and GameState.enemy_ship != null
+
+func _test_save() -> bool:
+	GameState.new_run("kestrel")
+	GameState.player_ship.scrap = 33
+	GameState.player_ship.fuel = 4
+	GameState.player_ship.damage_hull(1.0)
+	GameState.player_ship.systems.shields.set_level(2)
+	var snap := GameState.snapshot()
+	var restored := Ship.from_dict(snap["ship"])
+	if int(restored.scrap) != 33 or int(restored.fuel) != 4:
+		return false
+	if absf(restored.hull - GameState.player_ship.hull) > 0.01:
+		return false
+	if restored.systems.shields.level != 2:
+		return false
+	# full GameState restore
+	var gs_snap := GameState.snapshot()
+	GameState.new_run("kestrel")
+	GameState.restore(gs_snap)
+	return GameState.map != null and GameState.player_ship.scrap == 33 and GameState.run_active

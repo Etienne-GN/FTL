@@ -29,6 +29,7 @@ func generate(sector_num: int) -> void:
 				"col": col,
 				"row": row,
 				"type": type,
+				"hazard": _beacon_hazard(col, row, type),
 				"conns": [],
 			}
 			_id_counter += 1
@@ -75,6 +76,14 @@ func _beacon_type(col: int, row: int) -> String:
 	if roll < 0.70:
 		return "store"
 	return "battle"
+
+func _beacon_hazard(col: int, row: int, type: String) -> String:
+	if col == 0 or type == "exit":
+		return ""
+	if randf() > 0.35:
+		return ""
+	var pool := ["nebula", "nebula", "asteroid", "sun", "ion"]
+	return pool[randi() % pool.size()]
 
 func _at(col: int, row: int) -> Dictionary:
 	return beacons[col * ROWS + row]
@@ -129,3 +138,29 @@ func caught() -> bool:
 
 func progress() -> float:
 	return float(current().col) / float(COLS - 1)
+
+func to_dict() -> Dictionary:
+	var visited_ids: Array = []
+	for id in visited:
+		visited_ids.append(id)
+	return {
+		"sector": sector,
+		"beacons": beacons,
+		"player_id": player_id,
+		"fleet_col": fleet_col,
+		"visited": visited_ids,
+	}
+
+static func from_dict(data: Dictionary) -> SectorMap:
+	var m := SectorMap.new()
+	m.sector = int(data.get("sector", 1))
+	m.beacons = data.get("beacons", [])
+	m.player_id = str(data.get("player_id", ""))
+	m.fleet_col = int(data.get("fleet_col", -2))
+	m.visited = {}
+	for id in data.get("visited", []):
+		m.visited[id] = true
+	m.beacon_map.clear()
+	for b in m.beacons:
+		m.beacon_map[b.id] = b
+	return m

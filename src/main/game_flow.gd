@@ -101,6 +101,12 @@ func _show_map() -> void:
 	map_view.setup(GameState.map)
 	map_view.clicked.connect(_on_beacon_clicked)
 	add_child(map_view)
+	if GameState.run_active and GameState.player_ship != null:
+		SaveManager.save_run()
+
+func _exit_tree() -> void:
+	if GameState.player_ship != null and GameState.run_active and GameState.in_battle:
+		SaveManager.save_run()
 
 func _header_text() -> String:
 	var p := GameState.player_ship
@@ -116,6 +122,7 @@ func _on_beacon_clicked(beacon_id: String) -> void:
 	if state != State.MAP:
 		return
 	if GameState.attempt_jump(beacon_id, jump_range):
+		SaveManager.save_run()
 		_resolve_encounter()
 	else:
 		_refresh_map_header()
@@ -162,22 +169,27 @@ func _on_combat_end(winner: Ship) -> void:
 		var reward := 12 + GameState.sector * 4
 		var fuel_add := 1
 		if GameState.pending_encounter.get("boss", false):
+			SaveManager.save_meta()
 			_show_victory()
 			return
 		GameState.pending_encounter = {}
 		GameState.add_resources(fuel_add, randi() % 3, randi() % 2, reward)
 		GameState.enemy_ship = null
+		SaveManager.save_run()
 		_show_map()
 	elif winner == null:
 		# fled or ship destroyed without boss; proceed on map (fled) or game over
 		GameState.pending_encounter = {}
 		GameState.enemy_ship = null
 		if GameState.player_ship.hull <= 0.0:
+			SaveManager.delete_save()
 			_show_gameover()
 		else:
+			SaveManager.save_run()
 			_show_map()
 	else:
 		GameState.enemy_ship = null
+		SaveManager.delete_save()
 		_show_gameover()
 
 # ---------- event ----------
