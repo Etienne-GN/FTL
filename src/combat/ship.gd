@@ -47,6 +47,10 @@ var cloak_timer := 0.0
 var cloak_duration := 5.0
 var cloak_charge := 1.0
 
+var battery_capacity := 0                 # 1 if backup battery installed
+var battery_active := false               # currently granting +1 power
+var battery_time := 0.0                   # seconds remaining of active battery
+
 var weapons_powered_override := true
 var enemy_ai := true                   # enemy auto-targets
 
@@ -143,6 +147,16 @@ func _build_crew() -> void:
 		cm.task = "man"
 		i += 1
 
+func add_crew(cdef: Dictionary) -> CrewMember:
+	var cm := CrewMember.new(cdef)
+	cm.ship = self
+	var rid := _crew_start_room(crew.size())
+	cm.assign_room(rooms[rid])
+	cm.pos = _room_center_tile(rid)
+	cm.task = "man"
+	crew.append(cm)
+	return cm
+
 func _crew_start_room(i: int) -> String:
 	# scatter across rooms with systems
 	var prefer: Array = ["piloting", "weapons", "shields", "medbay", "engines"]
@@ -207,6 +221,38 @@ func is_powered(sid: String) -> bool:
 
 func set_battery(v: float) -> void:
 	battery = maxf(0.0, v)
+
+const BATTERY_DURATION := 12.0
+const BATTERY_RECHARGE := 30.0
+
+func battery_ready() -> bool:
+	return battery_capacity > 0 and not battery_active and battery_time <= 0.0
+
+func activate_battery() -> bool:
+	if not battery_ready():
+		return false
+	battery_active = true
+	battery_time = BATTERY_DURATION
+	battery = 1.0
+	return true
+
+func battery_tick(delta: float) -> void:
+	if battery_capacity <= 0:
+		return
+	if battery_active:
+		battery_time -= delta
+		if battery_time <= 0.0:
+			battery_active = false
+			battery = 0.0
+			battery_time = BATTERY_RECHARGE   # countdown recharge
+			for sys in systems.values():
+				sys.power = mini(sys.power, sys.level)
+	else:
+		# recharge countdown runs while not active
+		if battery_time > 0.0:
+			battery_time -= delta
+			if battery_time < 0.0:
+				battery_time = 0.0
 
 # ----- Combat helpers -----
 
@@ -708,6 +754,9 @@ func to_dict() -> Dictionary:
 		"rooms": _room_defs(),
 		"reactor": reactor,
 		"battery": battery,
+		"battery_capacity": battery_capacity,
+		"battery_active": battery_active,
+		"battery_time": battery_time,
 		"fuel": fuel,
 		"missiles": missiles,
 		"drone_parts": drone_parts,
@@ -763,6 +812,9 @@ static func from_dict(data: Dictionary) -> Ship:
 	s.hull = minf(s.hull, s.hull_max)
 	s.reactor = int(data.get("reactor", s.reactor))
 	s.battery = float(data.get("battery", 0.0))
+	s.battery_capacity = int(data.get("battery_capacity", 0))
+	s.battery_active = bool(data.get("battery_active", false))
+	s.battery_time = float(data.get("battery_time", 0.0))
 	s.fuel = int(data.get("fuel", 0))
 	s.missiles = int(data.get("missiles", 0))
 	s.drone_parts = int(data.get("drone_parts", 0))

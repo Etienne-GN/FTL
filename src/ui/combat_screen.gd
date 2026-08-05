@@ -23,6 +23,7 @@ var hud: Control
 var resources_label: Label
 var log_label: Label
 var pause_button: Button
+var battery_button: Button
 var power_boxes := {}          # system_id -> Label
 var weapon_buttons := []       # array of {button, weapon}
 
@@ -104,6 +105,14 @@ func _build_hud() -> void:
 	quit_btn.custom_minimum_size = Vector2(90, 40)
 	quit_btn.pressed.connect(_quit_to_menu)
 	hud.add_child(quit_btn)
+
+	if player.battery_capacity > 0:
+		battery_button = Button.new()
+		battery_button.text = "Battery"
+		battery_button.position = Vector2(VP().x - 400, 8)
+		battery_button.custom_minimum_size = Vector2(90, 40)
+		battery_button.pressed.connect(_toggle_battery)
+		hud.add_child(battery_button)
 
 	var power_panel := PanelContainer.new()
 	power_panel.position = Vector2(12, VP().y - 230)
@@ -277,6 +286,23 @@ func _toggle_pause() -> void:
 	GameState.paused = not GameState.paused
 	pause_button.text = "Resume" if GameState.paused else "Pause"
 
+func _toggle_battery() -> void:
+	if player.battery_active:
+		return
+	if player.activate_battery():
+		_refresh_battery_button()
+		_log("Backup battery engaged (+1 power).")
+
+func _refresh_battery_button() -> void:
+	if battery_button == null:
+		return
+	if player.battery_active:
+		battery_button.text = "Battery (%ds)" % int(player.battery_time)
+	elif player.battery_ready():
+		battery_button.text = "Battery"
+	else:
+		battery_button.text = "Recharging (%ds)" % int(player.battery_time)
+
 func _quit_to_menu() -> void:
 	GameState.paused = false
 	quit_to_menu.emit()
@@ -299,8 +325,11 @@ func _process(delta: float) -> void:
 		return
 	if selected_weapon != null and selected_weapon.target_room_id != "":
 		selected_weapon.enabled = true
+	player.battery_tick(delta)
 	combat.tick(delta)
 	_refresh_weapon_buttons()
+	if battery_button != null and player.battery_capacity > 0:
+		_refresh_battery_button()
 	player_view.queue_redraw()
 	enemy_view.queue_redraw()
 	if combat.combat_over():

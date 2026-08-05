@@ -23,6 +23,8 @@ func run_tests() -> void:
 	_run_test("run completion", _test_run_completion())
 	_run_test("boss encounter", _test_boss())
 	_run_test("save round-trip", _test_save())
+	_run_test("battery", _test_battery())
+	_run_test("crew hire", _test_crew_hire())
 	if failures == 0:
 		print("ALL TESTS PASSED")
 	else:
@@ -224,5 +226,50 @@ func _test_save() -> bool:
 	if GameState.enemy_ship == null or not GameState.in_battle:
 		return false
 	if GameState.enemy_ship.side != "enemy":
+		return false
+	return true
+
+func _test_battery() -> bool:
+	GameState.new_run("kestrel")
+	var p := GameState.player_ship
+	p.battery_capacity = 1
+	if not p.battery_ready():
+		return false
+	if not p.activate_battery():
+		return false
+	var before := p.available_power()
+	p.battery_tick(13.0)
+	if p.battery_active:
+		return false
+	var after := p.available_power()
+	if after not in [before - 1, before]:
+		return false
+	if p.battery_ready():
+		return false
+	p.battery_tick(31.0)
+	if not p.battery_ready():
+		return false
+	# survives a save round-trip
+	var snap := GameState.snapshot()
+	GameState.new_run("kestrel")
+	GameState.restore(snap)
+	if GameState.player_ship.battery_capacity != 1 or GameState.player_ship.battery_active:
+		return false
+	return true
+
+func _test_crew_hire() -> bool:
+	GameState.new_run("kestrel")
+	var p := GameState.player_ship
+	var before := p.crew.size()
+	var cm := p.add_crew({"name": "Test", "race": "mantis"})
+	if p.crew.size() != before + 1:
+		return false
+	if cm.ship != p or cm.room == null:
+		return false
+	cm.hp = 40.0
+	var snap := GameState.snapshot()
+	GameState.new_run("kestrel")
+	GameState.restore(snap)
+	if GameState.player_ship.crew.size() != before + 1:
 		return false
 	return true

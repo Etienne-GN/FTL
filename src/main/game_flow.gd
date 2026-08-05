@@ -274,6 +274,32 @@ func _show_store() -> void:
 		b.custom_minimum_size = Vector2(560, 40)
 		b.pressed.connect(_buy_weapon.bind(wid, cost))
 		box.add_child(b)
+	# provisions
+	var p := GameState.player_ship
+	if p.hull < p.hull_max:
+		var repair_cost := int((p.hull_max - p.hull)) * 10
+		var rb := Button.new()
+		rb.text = "Repair hull (%d hull) [%d scrap]" % [int(p.hull_max - p.hull), repair_cost]
+		rb.custom_minimum_size = Vector2(560, 40)
+		rb.pressed.connect(_buy_repair.bind(repair_cost))
+		box.add_child(rb)
+	if p.crew.size() < 8:
+		var cb := Button.new()
+		cb.text = "Hire crew [50 scrap]"
+		cb.custom_minimum_size = Vector2(560, 40)
+		cb.pressed.connect(_buy_crew)
+		box.add_child(cb)
+	var fb := Button.new()
+	fb.text = "Buy fuel (4) [15 scrap]"
+	fb.custom_minimum_size = Vector2(560, 40)
+	fb.pressed.connect(_buy_fuel)
+	box.add_child(fb)
+	if p.battery_capacity == 0:
+		var bb := Button.new()
+		bb.text = "Install backup battery [45 scrap]"
+		bb.custom_minimum_size = Vector2(560, 40)
+		bb.pressed.connect(_buy_battery)
+		box.add_child(bb)
 	var leave := Button.new()
 	leave.text = "Leave"
 	leave.custom_minimum_size = Vector2(560, 40)
@@ -291,6 +317,36 @@ func _buy_weapon(wid: String, cost: int) -> void:
 	if GameState.player_ship.scrap >= cost and GameState.player_ship.weapons.size() < 4:
 		GameState.player_ship.scrap -= cost
 		GameState.player_ship.weapons.append(WeaponState.new(Content.get_weapon(wid)))
+		_show_store()
+
+func _buy_repair(cost: int) -> void:
+	var p := GameState.player_ship
+	if p.scrap >= cost:
+		p.scrap -= cost
+		p.hull = p.hull_max
+		_show_store()
+
+func _buy_crew() -> void:
+	var p := GameState.player_ship
+	if p.scrap < 50 or p.crew.size() >= 8:
+		return
+	p.scrap -= 50
+	var races := ["human", "human", "human", "engi", "mantis", "rock"]
+	p.add_crew({"name": "Recruit %d" % (p.crew.size() + 1), "race": races[randi() % races.size()]})
+	_show_store()
+
+func _buy_fuel() -> void:
+	var p := GameState.player_ship
+	if p.scrap >= 15:
+		p.scrap -= 15
+		p.fuel += 4
+		_show_store()
+
+func _buy_battery() -> void:
+	var p := GameState.player_ship
+	if p.scrap >= 45:
+		p.scrap -= 45
+		p.battery_capacity = 1
 		_show_store()
 
 func _leave_store() -> void:
