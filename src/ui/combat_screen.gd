@@ -135,38 +135,38 @@ func _build_hud() -> void:
 
 	pause_button = Button.new()
 	pause_button.text = "Pause"
-	pause_button.position = Vector2(VP().x - 100, 8)
-	pause_button.custom_minimum_size = Vector2(90, 40)
+	pause_button.position = Vector2(VP().x - 110, 8)
+	pause_button.custom_minimum_size = Vector2(90, 48)
 	pause_button.pressed.connect(_toggle_pause)
 	hud.add_child(pause_button)
 
 	var end_btn := Button.new()
 	end_btn.text = "Flee"
-	end_btn.position = Vector2(VP().x - 200, 8)
-	end_btn.custom_minimum_size = Vector2(90, 40)
+	end_btn.position = Vector2(VP().x - 210, 8)
+	end_btn.custom_minimum_size = Vector2(90, 48)
 	end_btn.pressed.connect(_flee)
 	hud.add_child(end_btn)
 
 	var quit_btn := Button.new()
 	quit_btn.text = "Quit"
-	quit_btn.position = Vector2(VP().x - 300, 8)
-	quit_btn.custom_minimum_size = Vector2(90, 40)
+	quit_btn.position = Vector2(VP().x - 310, 8)
+	quit_btn.custom_minimum_size = Vector2(90, 48)
 	quit_btn.pressed.connect(_quit_to_menu)
 	hud.add_child(quit_btn)
 
 	if player.battery_capacity > 0:
 		battery_button = Button.new()
 		battery_button.text = "Battery"
-		battery_button.position = Vector2(VP().x - 400, 8)
-		battery_button.custom_minimum_size = Vector2(90, 40)
+		battery_button.position = Vector2(VP().x - 420, 8)
+		battery_button.custom_minimum_size = Vector2(90, 48)
 		battery_button.pressed.connect(_toggle_battery)
 		hud.add_child(battery_button)
 
 	if player.systems.has("doors"):
 		doors_button = Button.new()
 		doors_button.text = "Lock Doors"
-		doors_button.position = Vector2(VP().x - 490, 8)
-		doors_button.custom_minimum_size = Vector2(90, 40)
+		doors_button.position = Vector2(VP().x - 530, 8)
+		doors_button.custom_minimum_size = Vector2(90, 48)
 		doors_button.pressed.connect(_toggle_doors)
 		hud.add_child(doors_button)
 
@@ -189,7 +189,7 @@ func _build_hud() -> void:
 	_build_teleporter_panel(self)
 
 	log_label = Label.new()
-	log_label.position = Vector2(700, 340)
+	log_label.position = Vector2(12, 120)
 	log_label.custom_minimum_size = Vector2(300, 120)
 	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	log_label.add_theme_font_size_override("font_size", 14)
@@ -207,7 +207,7 @@ func _build_weapons_panel() -> void:
 	weapon_buttons.clear()
 	for w in player.weapons:
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(220, 40)
+		btn.custom_minimum_size = Vector2(220, 48)
 		btn.text = "%s  [0%%]" % Content.get_weapon(w.id).get("name", w.id)
 		var captured: WeaponState = w
 		btn.pressed.connect(_select_weapon.bind(captured))
@@ -227,7 +227,7 @@ func _build_crew_panel() -> void:
 	crew_buttons = {}
 	for cm in player.crew:
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(170, 30)
+		btn.custom_minimum_size = Vector2(170, 44)
 		btn.text = "%s (%s)" % [cm.name, cm.race]
 		btn.tooltip_text = _crew_skill_text(cm)
 		var captured: CrewMember = cm
@@ -264,12 +264,12 @@ func _build_teleporter_panel(_ignore) -> void:
 		vbox.add_child(title)
 		var send := Button.new()
 		send.text = "Send crew (enemy)"
-		send.custom_minimum_size = Vector2(160, 32)
+		send.custom_minimum_size = Vector2(160, 44)
 		send.pressed.connect(_teleport_send)
 		vbox.add_child(send)
 		var recall := Button.new()
 		recall.text = "Recall boarders"
-		recall.custom_minimum_size = Vector2(160, 32)
+		recall.custom_minimum_size = Vector2(160, 44)
 		recall.pressed.connect(_teleport_recall)
 		vbox.add_child(recall)
 		hud.add_child(panel)
@@ -299,10 +299,10 @@ func _make_system_row(sid: String) -> Control:
 	pwr_label.custom_minimum_size = Vector2(50, 0)
 	var minus := Button.new()
 	minus.text = "-"
-	minus.custom_minimum_size = Vector2(30, 28)
+	minus.custom_minimum_size = Vector2(44, 44)
 	var plus := Button.new()
 	plus.text = "+"
-	plus.custom_minimum_size = Vector2(30, 28)
+	plus.custom_minimum_size = Vector2(44, 44)
 	minus.pressed.connect(_adj_power.bind(sid, -1, pwr_label))
 	plus.pressed.connect(_adj_power.bind(sid, 1, pwr_label))
 	hbox.add_child(lbl)

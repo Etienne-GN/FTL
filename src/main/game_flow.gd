@@ -61,7 +61,7 @@ func _show_menu() -> void:
 	for sid in ships:
 		var b := Button.new()
 		b.text = "Start: %s" % Content.get_ship(sid).get("name", sid)
-		b.custom_minimum_size = Vector2(260, 40)
+		b.custom_minimum_size = Vector2(260, 48)
 		b.pressed.connect(_start_with.bind(sid))
 		vbox.add_child(b)
 
@@ -106,12 +106,12 @@ func _show_map() -> void:
 	for r in [1, 2, 3]:
 		var b := Button.new()
 		b.text = "Jump %d" % r
-		b.custom_minimum_size = Vector2(90, 36)
+		b.custom_minimum_size = Vector2(100, 48)
 		b.pressed.connect(_set_range.bind(r))
 		range_h.add_child(b)
 	var quit_b := Button.new()
 	quit_b.text = "Menu (save)"
-	quit_b.custom_minimum_size = Vector2(120, 36)
+	quit_b.custom_minimum_size = Vector2(140, 48)
 	quit_b.pressed.connect(_quit_to_menu)
 	range_h.add_child(quit_b)
 	hb.add_child(range_h)

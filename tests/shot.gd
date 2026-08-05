@@ -5,6 +5,10 @@ func _ready() -> void:
 	var main = get_node("../Main")
 	await get_tree().process_frame
 	GameState.new_run("kestrel")
+	var p := GameState.player_ship
+	for i in 8:
+		p.add_crew({"name": "Cr%d" % i, "race": "human"})
+	p.battery_capacity = 1
 	GameState.enemy_ship = Ship.create(GameState._enemy_def(3), "enemy")
 	GameState.pending_encounter = {"action": "battle"}
 	main._resolve_encounter()
