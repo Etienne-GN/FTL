@@ -285,6 +285,14 @@ func _show_store() -> void:
 		b.custom_minimum_size = Vector2(560, 40)
 		b.pressed.connect(_buy_upgrade.bind(sid, cost))
 		box.add_child(b)
+	var p := GameState.player_ship
+	if p.reactor < 12:
+		var rcost := 20 + p.reactor * 10
+		var rb0 := Button.new()
+		rb0.text = "Upgrade Reactor (+1 power) [%d scrap]" % rcost
+		rb0.custom_minimum_size = Vector2(560, 40)
+		rb0.pressed.connect(_buy_reactor.bind(rcost))
+		box.add_child(rb0)
 	for wid in GameState.stock_weapons():
 		var cost := int(Content.get_weapon(wid).get("price", 30))
 		var b := Button.new()
@@ -300,7 +308,6 @@ func _show_store() -> void:
 		b.pressed.connect(_buy_drone.bind(did, cost))
 		box.add_child(b)
 	# provisions
-	var p := GameState.player_ship
 	if p.hull < p.hull_max:
 		var repair_cost := int((p.hull_max - p.hull)) * 10
 		var rb := Button.new()
@@ -336,6 +343,14 @@ func _buy_upgrade(sid: String, cost: int) -> void:
 	if GameState.player_ship.scrap >= cost:
 		GameState.player_ship.scrap -= cost
 		GameState.player_ship.systems[sid].set_level(GameState.player_ship.systems[sid].level + 1)
+		_sfx("purchase")
+		_show_store()
+
+func _buy_reactor(cost: int) -> void:
+	var p := GameState.player_ship
+	if p.scrap >= cost and p.reactor < 12:
+		p.scrap -= cost
+		p.reactor += 1
 		_sfx("purchase")
 		_show_store()
 
