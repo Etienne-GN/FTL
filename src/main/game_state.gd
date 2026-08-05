@@ -24,6 +24,30 @@ var victory_flag := false
 var last_result := ""
 var pending_encounter: Dictionary = {}   # {action, ...} at current beacon
 var highest_sector := 1
+var sector_theme: Dictionary = {}        # current sector's theme def
+
+func _pick_theme() -> Dictionary:
+	if Content.sector_themes.is_empty():
+		return {}
+	return Content.sector_themes[randi() % Content.sector_themes.size()]
+
+func theme_name() -> String:
+	return str(sector_theme.get("name", "Unknown Sector"))
+
+func hazard_bias() -> String:
+	return str(sector_theme.get("hazard", ""))
+
+func apply_theme_to_map() -> void:
+	if map == null:
+		return
+	var bias := hazard_bias()
+	if bias == "" or bias == "none":
+		return
+	var chance := float(sector_theme.get("hazard_chance", 0.3))
+	for b in map.beacons:
+		if b.get("hazard", "") == "" and b.get("type", "") != "exit":
+			if randf() < chance:
+				b["hazard"] = bias
 
 func new_run(ship_id: String = "kestrel") -> void:
 	var def := Content.get_ship(ship_id)
@@ -33,8 +57,10 @@ func new_run(ship_id: String = "kestrel") -> void:
 	run_active = true
 	victory_flag = false
 	sector = 1
+	sector_theme = _pick_theme()
 	map = SectorMap.new()
 	map.generate(sector)
+	apply_theme_to_map()
 	beacons = map.beacons
 	fleet_offset = 0.0
 	jumped_this_sector = 0
@@ -265,8 +291,10 @@ func next_sector() -> void:
 	if sector > 8:
 		victory_flag = true
 		return
+	sector_theme = _pick_theme()
 	map.generate(sector)
 	beacons = map.beacons
+	apply_theme_to_map()
 	pending_encounter = {}
 	player_ship.refresh_after_sector()
 
@@ -289,6 +317,7 @@ func snapshot() -> Dictionary:
 		"enemy": enemy_ship.to_dict() if enemy_ship != null else {},
 		"map": map.to_dict() if map != null else {},
 		"sector": sector,
+		"theme": sector_theme,
 		"in_battle": in_battle,
 		"pending_encounter": pending_encounter,
 	}
@@ -296,6 +325,9 @@ func snapshot() -> Dictionary:
 func restore(data: Dictionary) -> void:
 	player_ship = Ship.from_dict(data.get("ship", {}))
 	sector = int(data.get("sector", 1))
+	sector_theme = data.get("theme", {})
+	if sector_theme.is_empty():
+		sector_theme = _pick_theme()
 	var md: Dictionary = data.get("map", {})
 	map = SectorMap.from_dict(md) if not md.is_empty() else (SectorMap.new() as SectorMap)
 	if map.beacons.is_empty():

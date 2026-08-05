@@ -131,8 +131,8 @@ func _exit_tree() -> void:
 
 func _header_text() -> String:
 	var p := GameState.player_ship
-	return "Sector %d   Hull %d/%d   Fuel %d   Scrap %d   Missiles %d   Drones %d" % [
-		GameState.sector, int(p.hull), int(p.hull_max), p.fuel, p.scrap, p.missiles, p.drone_parts]
+	return "Sector %d — %s   Hull %d/%d   Fuel %d   Scrap %d   Missiles %d   Drones %d" % [
+		GameState.sector, GameState.theme_name(), int(p.hull), int(p.hull_max), p.fuel, p.scrap, p.missiles, p.drone_parts]
 
 func _set_range(r: int) -> void:
 	jump_range = r

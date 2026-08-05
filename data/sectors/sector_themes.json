@@ -1,0 +1,60 @@
+{
+  "themes": [
+    {
+      "id": "civilian",
+      "name": "Civilian",
+      "hazard": "nebula",
+      "hazard_chance": 0.3,
+      "color": [0.35, 0.45, 0.6]
+    },
+    {
+      "id": "nebula",
+      "name": "Nebula",
+      "hazard": "nebula",
+      "hazard_chance": 0.6,
+      "color": [0.3, 0.3, 0.55]
+    },
+    {
+      "id": "pirate",
+      "name": "Pirate Lanes",
+      "hazard": "asteroids",
+      "hazard_chance": 0.45,
+      "color": [0.5, 0.3, 0.3]
+    },
+    {
+      "id": "engi",
+      "name": "Engi Colonies",
+      "hazard": "ion",
+      "hazard_chance": 0.4,
+      "color": [0.4, 0.5, 0.55]
+    },
+    {
+      "id": "mantis",
+      "name": "Mantis Territories",
+      "hazard": "none",
+      "hazard_chance": 0.2,
+      "color": [0.35, 0.4, 0.3]
+    },
+    {
+      "id": "rock",
+      "name": "Rock Homeworlds",
+      "hazard": "sun",
+      "hazard_chance": 0.45,
+      "color": [0.55, 0.4, 0.25]
+    },
+    {
+      "id": "federation",
+      "name": "Federation Space",
+      "hazard": "none",
+      "hazard_chance": 0.15,
+      "color": [0.35, 0.5, 0.55]
+    },
+    {
+      "id": "rebel",
+      "name": "Rebel-controlled Space",
+      "hazard": "asteroids",
+      "hazard_chance": 0.5,
+      "color": [0.5, 0.4, 0.4]
+    }
+  ]
+}
