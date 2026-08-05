@@ -24,6 +24,7 @@ var resources_label: Label
 var log_label: Label
 var pause_button: Button
 var battery_button: Button
+var doors_button: Button
 var power_boxes := {}          # system_id -> Label
 var weapon_buttons := []       # array of {button, weapon}
 
@@ -35,6 +36,7 @@ func start_battle(p: Ship, e: Ship, sector: int) -> void:
 	sector_num = sector
 	GameState.paused = false
 	_ended = false
+	player.doors_locked = false
 	_build_background()
 	combat = CombatManager.new(player, enemy, GameState.pending_encounter.get("hazard", ""))
 	GameState.in_battle = true
@@ -113,6 +115,14 @@ func _build_hud() -> void:
 		battery_button.custom_minimum_size = Vector2(90, 40)
 		battery_button.pressed.connect(_toggle_battery)
 		hud.add_child(battery_button)
+
+	if player.systems.has("doors"):
+		doors_button = Button.new()
+		doors_button.text = "Lock Doors"
+		doors_button.position = Vector2(VP().x - 490, 8)
+		doors_button.custom_minimum_size = Vector2(90, 40)
+		doors_button.pressed.connect(_toggle_doors)
+		hud.add_child(doors_button)
 
 	var power_panel := PanelContainer.new()
 	power_panel.position = Vector2(12, VP().y - 230)
@@ -309,6 +319,11 @@ func _toggle_battery() -> void:
 	if player.activate_battery():
 		_refresh_battery_button()
 		_log("Backup battery engaged (+1 power).")
+
+func _toggle_doors() -> void:
+	player.doors_locked = not player.doors_locked
+	doors_button.text = "Unlock" if player.doors_locked else "Lock Doors"
+	_log("Doors locked." if player.doors_locked else "Doors unlocked.")
 
 func _refresh_battery_button() -> void:
 	if battery_button == null:

@@ -36,6 +36,7 @@ var shield_recharge_time := 5.0
 
 var o2_level: float = 1.0
 var door_power := 1.0
+var doors_locked := false     # powered doors lock: slows non-mantis boarders
 
 var jump_charge := 0.0
 var jump_target := 0.0                 # 1.0 = charged
@@ -496,6 +497,9 @@ func _move_crew(cm: CrewMember, delta: float) -> void:
 	var dir: Vector2 = target - cm.pos
 	var dist: float = dir.length()
 	var step: float = cm.speed * delta
+	# powered doors slow non-mantis boarders trying to move through the ship
+	if doors_locked and boarders.has(cm) and cm.race != "mantis" and is_powered("doors"):
+		step *= 0.55
 	if dist <= step:
 		cm.pos = target
 		cm.path.pop_front()

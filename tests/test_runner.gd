@@ -26,6 +26,7 @@ func run_tests() -> void:
 	_run_test("battery", _test_battery())
 	_run_test("crew hire", _test_crew_hire())
 	_run_test("crew xp", _test_crew_xp())
+	_run_test("door lock", _test_doors())
 	if failures == 0:
 		print("ALL TESTS PASSED")
 	else:
@@ -289,4 +290,30 @@ func _test_crew_xp() -> bool:
 		return false
 	if cm.stat("fight") != 0:
 		return false
+	return true
+
+func _test_doors() -> bool:
+	GameState.new_run("kestrel")
+	var p := GameState.player_ship
+	var b := CrewMember.new({"name": "Boarder", "race": "human"})
+	b.ship = p
+	b.assign_room(p.rooms[p.room_order[0]])
+	b.path = [p.room_order[1]]
+	p.boarders.append(b)
+	var m1 := b.pos
+	# unlocked doors: normal speed
+	p.doors_locked = false
+	p.allocate_power("doors", 1)
+	var t1 := b.pos + (p._room_center_tile(p.room_order[1]) - b.pos).normalized()
+	p._move_crew(b, 0.5)
+	var dist_unlocked: float = (b.pos - m1).length()
+	p.doors_locked = true
+	b.pos = m1
+	p._move_crew(b, 0.5)
+	var dist_locked: float = (b.pos - m1).length()
+	if dist_locked >= dist_unlocked:
+		return false
+	if not p.is_powered("doors"):
+		return false
+	p.boarders = []
 	return true
