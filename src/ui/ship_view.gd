@@ -30,17 +30,7 @@ var sprite_atlas: AtlasTexture = null
 func setup(s: Ship, is_enemy: bool = false) -> void:
 	ship = s
 	flipped = is_enemy
-	var filename := ""
-	match ship.ship_id:
-		"kestrel", "kestrel_b":
-			filename = "PC _ Computer - FTL_ Faster Than Light - Playable Ships - Kestrel Cruiser.png"
-		"engi_a", "engi_b":
-			filename = "PC _ Computer - FTL_ Faster Than Light - Playable Ships - Engi Cruiser.png"
-		"mantis_raider":
-			filename = "PC _ Computer - FTL_ Faster Than Light - Playable Ships - Mantis Cruiser.png"
-		_:
-			filename = "PC _ Computer - FTL_ Faster Than Light - Playable Ships - Kestrel Cruiser.png"
-	var path := "res://assets/sprites/ships/%s" % filename
+	var path := "res://assets/sprites/ships/%s.png" % ship.ship_id
 	if ResourceLoader.exists(path):
 		hull_texture = load(path)
 		if hull_texture != null:
