@@ -27,7 +27,7 @@
       "ftl_charge_per_level": [0.5, 0.65, 0.8, 0.95, 1.1, 1.3, 1.5, 1.7]
     },
     {
-      "id": "weapon",
+      "id": "weapons",
       "name": "Weapon",
       "max_level": 8,
       "desc": "Powers your equipped weapons.",

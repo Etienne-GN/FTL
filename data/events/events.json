@@ -1,0 +1,30 @@
+{
+  "events": [
+    {
+      "id": "distress_signal",
+      "text": "You pick up a distress signal from a merchant ship. Its engines are dead.",
+      "choices": [
+        { "text": "Help them (repair)", "outcome": { "scrap": 8, "fuel": 2 } },
+        { "text": "Demand payment for repairs", "outcome": { "scrap": 15 } },
+        { "text": "Leave them to drift", "outcome": { } }
+      ]
+    },
+    {
+      "id": "derelict",
+      "text": "A derelict supply ship floats in the void, its cargo bay open.",
+      "choices": [
+        { "text": "Search the cargo", "outcome": { "scrap": 10, "drone_parts": 2 } },
+        { "text": "Rig it to blow", "outcome": { "scrap": 20, "damage": 1 } }
+      ]
+    },
+    {
+      "id": "slavers",
+      "text": "Slaver ships try to board you. They demand your ship.",
+      "choices": [
+        { "text": "Fight them off", "outcome": { "battle": 2 } },
+        { "text": "Pay them off", "outcome": { "scrap": -15 } },
+        { "text": "Give them a crew member", "outcome": { "crew_lose": 1 } }
+      ]
+    }
+  ]
+}
