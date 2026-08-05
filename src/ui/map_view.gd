@@ -13,6 +13,8 @@ var r := 16.0
 
 func setup(m: SectorMap) -> void:
 	map = m
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	set_anchors_preset(Control.PRESET_FULL_RECT)
 	queue_redraw()
 
 func beacon_px(b: Dictionary) -> Vector2:
