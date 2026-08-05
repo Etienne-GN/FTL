@@ -274,6 +274,7 @@ func stock_weapons() -> Array:
 func snapshot() -> Dictionary:
 	return {
 		"ship": player_ship.to_dict() if player_ship != null else {},
+		"enemy": enemy_ship.to_dict() if enemy_ship != null else {},
 		"map": map.to_dict() if map != null else {},
 		"sector": sector,
 		"in_battle": in_battle,
@@ -289,7 +290,8 @@ func restore(data: Dictionary) -> void:
 		map.generate(sector)
 	beacons = map.beacons
 	pending_encounter = data.get("pending_encounter", {})
+	var ed: Dictionary = data.get("enemy", {})
+	enemy_ship = Ship.from_dict(ed) if not ed.is_empty() else null
 	in_battle = bool(data.get("in_battle", false))
-	enemy_ship = null
 	run_active = true
 	paused = false

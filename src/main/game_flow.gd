@@ -67,7 +67,10 @@ func _start_game() -> void:
 		SaveManager.load_run()
 	else:
 		GameState.new_run("kestrel")
-	_show_map()
+	if GameState.in_battle and GameState.enemy_ship != null:
+		_show_combat()
+	else:
+		_show_map()
 
 # ---------- map ----------
 
@@ -93,6 +96,11 @@ func _show_map() -> void:
 		b.custom_minimum_size = Vector2(90, 36)
 		b.pressed.connect(_set_range.bind(r))
 		range_h.add_child(b)
+	var quit_b := Button.new()
+	quit_b.text = "Menu (save)"
+	quit_b.custom_minimum_size = Vector2(120, 36)
+	quit_b.pressed.connect(_quit_to_menu)
+	range_h.add_child(quit_b)
 	hb.add_child(range_h)
 	add_child(header)
 
@@ -133,6 +141,11 @@ func _refresh_map_header() -> void:
 	if hint_label != null:
 		hint_label.text = "Cannot jump (no fuel or unreachable)."
 
+func _quit_to_menu() -> void:
+	if GameState.player_ship != null and GameState.run_active:
+		SaveManager.save_run()
+	_show_menu()
+
 # ---------- encounter resolution ----------
 
 func _resolve_encounter() -> void:
@@ -157,6 +170,7 @@ func _show_combat() -> void:
 	state = State.COMBAT
 	combat_screen = CombatScreen.new()
 	combat_screen.battle_ended.connect(_on_combat_end)
+	combat_screen.quit_to_menu.connect(_quit_to_menu)
 	add_child(combat_screen)
 	GameState.player_ship.refresh_after_sector()
 	combat_screen.start_battle(GameState.player_ship, GameState.enemy_ship, GameState.sector)

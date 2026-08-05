@@ -4,6 +4,7 @@ extends Node2D
 ## CombatManager, and emits battle_ended(winner) when the fight is over.
 
 signal battle_ended(winner: Ship)
+signal quit_to_menu
 
 var player: Ship
 var enemy: Ship
@@ -96,6 +97,13 @@ func _build_hud() -> void:
 	end_btn.custom_minimum_size = Vector2(90, 40)
 	end_btn.pressed.connect(_flee)
 	hud.add_child(end_btn)
+
+	var quit_btn := Button.new()
+	quit_btn.text = "Quit"
+	quit_btn.position = Vector2(VP().x - 300, 8)
+	quit_btn.custom_minimum_size = Vector2(90, 40)
+	quit_btn.pressed.connect(_quit_to_menu)
+	hud.add_child(quit_btn)
 
 	var power_panel := PanelContainer.new()
 	power_panel.position = Vector2(12, VP().y - 230)
@@ -268,6 +276,10 @@ func _select_weapon(w: WeaponState) -> void:
 func _toggle_pause() -> void:
 	GameState.paused = not GameState.paused
 	pause_button.text = "Resume" if GameState.paused else "Pause"
+
+func _quit_to_menu() -> void:
+	GameState.paused = false
+	quit_to_menu.emit()
 
 func _adj_power(sid: String, delta: int, label: Label) -> void:
 	var ok := player.allocate_power(sid, player.systems[sid].power + delta)

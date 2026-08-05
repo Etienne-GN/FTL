@@ -213,8 +213,16 @@ func _test_save() -> bool:
 		return false
 	if restored.systems.shields.level != 2:
 		return false
-	# full GameState restore
+	# full GameState restore (incl. mid-battle enemy)
+	GameState.spawn_enemy(3)
+	GameState.in_battle = true
 	var gs_snap := GameState.snapshot()
 	GameState.new_run("kestrel")
 	GameState.restore(gs_snap)
-	return GameState.map != null and GameState.player_ship.scrap == 33 and GameState.run_active
+	if GameState.map == null or GameState.player_ship.scrap != 33 or not GameState.run_active:
+		return false
+	if GameState.enemy_ship == null or not GameState.in_battle:
+		return false
+	if GameState.enemy_ship.side != "enemy":
+		return false
+	return true

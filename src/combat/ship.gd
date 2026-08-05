@@ -703,6 +703,9 @@ func to_dict() -> Dictionary:
 		"ship_id": ship_id,
 		"side": side,
 		"hull": hull,
+		"hull_max": hull_max,
+		"grid": {"w": grid.x, "h": grid.y},
+		"rooms": _room_defs(),
 		"reactor": reactor,
 		"battery": battery,
 		"fuel": fuel,
@@ -717,6 +720,14 @@ func to_dict() -> Dictionary:
 		"jump_charge": jump_charge,
 	}
 
+func _room_defs() -> Array:
+	var out: Array = []
+	for rid in room_order:
+		var r: Dictionary = rooms[rid]
+		var rect: Rect2i = r.rect
+		out.append({"id": rid, "system": r.system, "x": rect.position.x, "y": rect.position.y, "w": rect.size.x, "h": rect.size.y})
+	return out
+
 func _weapon_ids() -> Array:
 	var out: Array = []
 	for w in weapons:
@@ -730,7 +741,23 @@ func _drone_ids() -> Array:
 	return out
 
 static func from_dict(data: Dictionary) -> Ship:
-	var def := Content.get_ship(str(data.get("ship_id", "kestrel")))
+	var def := {}
+	if data.has("rooms") and not (data.get("rooms") as Array).is_empty():
+		def = {
+			"id": str(data.get("ship_id", "ship")),
+			"grid": data.get("grid", {"w": 14, "h": 7}),
+			"rooms": data.get("rooms", []),
+			"hull": data.get("hull_max", data.get("hull", 6)),
+			"reactor": data.get("reactor", 4),
+			"start_fuel": 0,
+			"start_missiles": 0,
+			"start_drone_parts": 0,
+			"start_scrap": 0,
+			"weapons": data.get("weapons", []),
+			"drones": data.get("drones", []),
+		}
+	else:
+		def = Content.get_ship(str(data.get("ship_id", "kestrel")))
 	var s := Ship.create(def, str(data.get("side", "player")))
 	s.hull = float(data.get("hull", s.hull_max))
 	s.hull = minf(s.hull, s.hull_max)
