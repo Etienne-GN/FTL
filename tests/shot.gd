@@ -15,8 +15,13 @@ func _ready() -> void:
 	for i in 30:
 		await get_tree().process_frame
 	var probs: Array = main.combat_screen._check_layout()
-	var img := get_viewport().get_texture().get_image()
-	img.save_png("/tmp/opencode/combat.png")
+	await get_tree().process_frame
+	var img := get_viewport().get_viewport_texture().get_image()
+	if img != null:
+		img.save_png("/tmp/opencode/combat.png")
+		print("COMBAT SHOT SAVED")
+	else:
+		print("COMBAT SHOT NULL")
 	if probs.is_empty():
 		print("LAYOUT OK")
 	else:

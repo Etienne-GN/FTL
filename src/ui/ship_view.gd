@@ -24,14 +24,22 @@ const BREACH := Color(0.1, 0.2, 0.4)
 var ship: Ship
 var flipped := true                 # enemy ship drawn mirrored (rooms reversed)
 var tile := Ship.TILE
+var hull_texture: Texture2D = null
 
 func setup(s: Ship, is_enemy: bool = false) -> void:
 	ship = s
 	flipped = is_enemy
+	var path := "res://assets/sprites/ships/%s.png" % ship.ship_id
+	if ResourceLoader.exists(path):
+		hull_texture = load(path)
 
 func _draw() -> void:
 	if ship == null:
 		return
+	if hull_texture != null:
+		var sz := hull_texture.get_size()
+		var dest_rect := Rect2(Vector2.ZERO, Vector2(ship.grid.x * tile, ship.grid.y * tile))
+		draw_texture_rect(hull_texture, dest_rect, false)
 	for room_id in ship.room_order:
 		_draw_room(room_id)
 	_draw_crew()
