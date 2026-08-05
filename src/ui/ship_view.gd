@@ -31,12 +31,15 @@ func setup(s: Ship, is_enemy: bool = false) -> void:
 	ship = s
 	flipped = is_enemy
 	var path := "res://assets/sprites/ships/%s.png" % ship.ship_id
-	if ResourceLoader.exists(path):
-		hull_texture = load(path)
-		if hull_texture != null:
+	if not FileAccess.file_exists(path):
+		path = "res://assets/sprites/ships/kestrel.png"
+	if FileAccess.file_exists(path):
+		var img := Image.new()
+		if img.load(path) == OK:
+			hull_texture = ImageTexture.create_from_image(img)
 			sprite_atlas = AtlasTexture.new()
 			sprite_atlas.atlas = hull_texture
-			sprite_atlas.region = Rect2(0, 0, hull_texture.get_width(), hull_texture.get_height())
+			sprite_atlas.region = Rect2(Vector2.ZERO, Vector2(img.get_size()))
 
 func _draw() -> void:
 	if ship == null:
