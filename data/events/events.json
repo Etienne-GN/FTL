@@ -65,6 +65,79 @@
         { "text": "Mine it", "outcome": { "scrap": 20, "fuel": 1 } },
         { "text": "Push past", "outcome": { } }
       ]
+    },
+    {
+      "id": "rebels_intercept",
+      "text": "Rebel patrol ships catch you refuelling. They demand surrender.",
+      "choices": [
+        { "text": "Fight", "outcome": { "battle": 1 } },
+        { "text": "Jettison cargo as tribute", "outcome": { "scrap": -18 } }
+      ]
+    },
+    {
+      "id": "engi_pods",
+      "text": "Drifting Engi repair pods cluster around a cracked station.",
+      "choices": [
+        { "text": "Retrieve a pod", "outcome": { "drone_parts": 4 } },
+        { "text": "Scan for data", "outcome": { "scrap": 14, "missiles": 2 } }
+      ]
+    },
+    {
+      "id": "abandoned_station",
+      "text": "An abandoned mining station hums with automated defenses.",
+      "choices": [
+        { "text": "Sweep for salvage", "outcome": { "scrap": 22, "damage": 1 } },
+        { "text": "Use a drone as bait", "outcome": { "scrap": 30, "drone_parts": -1 } },
+        { "text": "Move on", "outcome": { } }
+      ]
+    },
+    {
+      "id": "giant_spiders",
+      "text": "A wreck teems with giant alien spiders. An easy meal, if you dare.",
+      "choices": [
+        { "text": "Send a crew member in", "outcome": { "scrap": 35, "crew_lose": 1 } },
+        { "text": "Lock the bay and leave", "outcome": { } }
+      ]
+    },
+    {
+      "id": "smugglers",
+      "text": "Smugglers offer rare salvage in exchange for discretion.",
+      "choices": [
+        { "text": "Take the deal", "outcome": { "scrap": 16, "missiles": 2 } },
+        { "text": "Report them to the federation", "outcome": { "scrap": 12, "fuel": 1 } }
+      ]
+    },
+    {
+      "id": "medical_emergency",
+      "text": "A mining craft requests an engineer for an emergency repair.",
+      "choices": [
+        { "text": "Send a crew member", "outcome": { "scrap": 18, "fuel": 2 } },
+        { "text": "Sell them spare parts", "outcome": { "scrap": 12, "drone_parts": -1 } }
+      ]
+    },
+    {
+      "id": "astonished_monks",
+      "text": "Contemplative monks offer you drink in exchange for scrap.",
+      "choices": [
+        { "text": "Trade scrap for their blessings", "outcome": { "scrap": -10, "fuel": 2 } },
+        { "text": "Take some credits and leave", "outcome": { "scrap": 20 } }
+      ]
+    },
+    {
+      "id": "ion_storm_wreck",
+      "text": "A wreck drifts in an ion storm, running on backup power.",
+      "choices": [
+        { "text": "Cautiously board", "outcome": { "scrap": 25, "damage": 1 } },
+        { "text": "Tow it free for reward", "outcome": { "fuel": -1, "scrap": 20 } }
+      ]
+    },
+    {
+      "id": "friendly_autonomous",
+      "text": "A friendly autonomous drone asks to join your ship.",
+      "choices": [
+        { "text": "Accept it", "outcome": { "drone_parts": 3 } },
+        { "text": "Junk it for scrap", "outcome": { "scrap": 15 } }
+      ]
     }
   ]
 }

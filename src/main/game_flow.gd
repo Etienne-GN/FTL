@@ -248,8 +248,11 @@ func _show_event(ev: Dictionary) -> void:
 	add_child(panel)
 
 func _choose_event(i: int) -> void:
-	GameState.resolve_event(i)
-	_show_map()
+	var result: String = GameState.resolve_event(i)
+	if GameState.pending_encounter.get("action", "") == "battle":
+		_resolve_encounter()
+	else:
+		_show_map()
 
 # ---------- store ----------
 
