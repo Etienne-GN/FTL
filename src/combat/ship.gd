@@ -577,6 +577,7 @@ func teleport_crew_to(target: Ship, room_id: String) -> bool:
 		return false
 	if not target.rooms.has(room_id):
 		return false
+	_sfx("teleport")
 	var tp_room := system_room_id("teleporter")
 	if tp_room == "":
 		return false
@@ -734,6 +735,9 @@ func refresh_after_sector() -> void:
 	charge_jump()
 	for sys in systems.values():
 		sys.ion = 0
+
+func _sfx(name: String) -> void:
+	SFX.play(name)
 
 # ----- Serialization (save/quit) -----
 

@@ -65,6 +65,10 @@ func _show_menu() -> void:
 		b.pressed.connect(_start_with.bind(sid))
 		vbox.add_child(b)
 
+func _sfx(name: String) -> void:
+	if has_node("/root/SFX"):
+		get_node("/root/SFX").play(name)
+
 func _start_with(ship_id: String) -> void:
 	if SaveManager.has_save():
 		SaveManager.delete_save()
@@ -140,6 +144,7 @@ func _on_beacon_clicked(beacon_id: String) -> void:
 		return
 	if GameState.attempt_jump(beacon_id, jump_range):
 		SaveManager.save_run()
+		_sfx("jump")
 		_resolve_encounter()
 	else:
 		_refresh_map_header()
@@ -183,6 +188,8 @@ func _show_combat() -> void:
 	add_child(combat_screen)
 	GameState.player_ship.refresh_after_sector()
 	combat_screen.start_battle(GameState.player_ship, GameState.enemy_ship, GameState.sector)
+	if not GameState.pending_encounter.get("boss", false):
+		_sfx("alarm")
 
 func _on_combat_end(winner: Ship) -> void:
 	if combat_screen != null:
@@ -311,12 +318,14 @@ func _buy_upgrade(sid: String, cost: int) -> void:
 	if GameState.player_ship.scrap >= cost:
 		GameState.player_ship.scrap -= cost
 		GameState.player_ship.systems[sid].set_level(GameState.player_ship.systems[sid].level + 1)
+		_sfx("purchase")
 		_show_store()
 
 func _buy_weapon(wid: String, cost: int) -> void:
 	if GameState.player_ship.scrap >= cost and GameState.player_ship.weapons.size() < 4:
 		GameState.player_ship.scrap -= cost
 		GameState.player_ship.weapons.append(WeaponState.new(Content.get_weapon(wid)))
+		_sfx("purchase")
 		_show_store()
 
 func _buy_repair(cost: int) -> void:
@@ -324,6 +333,7 @@ func _buy_repair(cost: int) -> void:
 	if p.scrap >= cost:
 		p.scrap -= cost
 		p.hull = p.hull_max
+		_sfx("purchase")
 		_show_store()
 
 func _buy_crew() -> void:
@@ -333,6 +343,7 @@ func _buy_crew() -> void:
 	p.scrap -= 50
 	var races := ["human", "human", "human", "engi", "mantis", "rock"]
 	p.add_crew({"name": "Recruit %d" % (p.crew.size() + 1), "race": races[randi() % races.size()]})
+	_sfx("purchase")
 	_show_store()
 
 func _buy_fuel() -> void:
@@ -340,6 +351,7 @@ func _buy_fuel() -> void:
 	if p.scrap >= 15:
 		p.scrap -= 15
 		p.fuel += 4
+		_sfx("purchase")
 		_show_store()
 
 func _buy_battery() -> void:
@@ -347,6 +359,7 @@ func _buy_battery() -> void:
 	if p.scrap >= 45:
 		p.scrap -= 45
 		p.battery_capacity = 1
+		_sfx("purchase")
 		_show_store()
 
 func _leave_store() -> void:
@@ -358,6 +371,7 @@ func _leave_store() -> void:
 func _show_gameover() -> void:
 	_clear()
 	state = State.OVER
+	_sfx("defeat")
 	var v := VBoxContainer.new()
 	v.set_anchors_preset(Control.PRESET_CENTER)
 	var t := Label.new()
@@ -379,6 +393,7 @@ func _show_gameover() -> void:
 func _show_victory() -> void:
 	_clear()
 	state = State.OVER
+	_sfx("victory")
 	GameState.victory_flag = true
 	SaveManager.save_meta()
 	var v := VBoxContainer.new()

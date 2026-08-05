@@ -22,6 +22,7 @@ config/icon="res://assets/icons/icon.svg"
 Content="*res://src/util/content_db.gd"
 GameState="*res://src/main/game_state.gd"
 SaveManager="*res://src/main/save_manager.gd"
+SFX="*res://src/main/sfx.gd"
 
 [display]
 

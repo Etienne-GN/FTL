@@ -169,6 +169,13 @@ func _fire_weapon(from: Ship, target: Ship, w: WeaponState) -> void:
 		}
 		projectiles.append(proj)
 		projectile_fired.emit(from, proj)
+	match type:
+		"missile", "bomb":
+			SFX.play("missile")
+		"ion":
+			SFX.play("ion")
+		_:
+			SFX.play_rand(["laser", "laser2"])
 
 func _fire_beam(from: Ship, target: Ship, w: WeaponState, wdef: Dictionary) -> void:
 	# Instant line beam: hits rooms along the beam length from target room.
@@ -186,6 +193,7 @@ func _fire_beam(from: Ship, target: Ship, w: WeaponState, wdef: Dictionary) -> v
 					hit_rooms.append(r)
 	for rid in hit_rooms:
 		_apply_hit(target, rid, wdef, true)
+	SFX.play("beam")
 
 func _drones(delta: float) -> void:
 	# Player combat drones fire; defense drones intercept inbound missiles.
@@ -245,6 +253,7 @@ func _resolve_projectile(p: Dictionary) -> void:
 	if target.shield_bubbles > pierce:
 		target.damage_bubble()
 		shot_blocked.emit(target)
+		_sfx("shieldhit")
 		# ion hits shields, disrupts recharge
 		if wdef.get("type", "laser") == "ion":
 			var ss: SystemState = target.systems.get("shields")
@@ -279,7 +288,18 @@ func _apply_hit(target: Ship, room_id: String, wdef: Dictionary, beam: bool) -> 
 	# beams apply ion per room
 	if beam and wdef.get("ion_damage", 0) > 0 and room.system != "":
 		target.apply_ion(room.system, int(wdef.get("ion_damage", 0)))
+	if not beam:
+		match wdef.get("type", "laser"):
+			"missile", "bomb":
+				_sfx("explosion")
+			"ion":
+				_sfx("ion")
+			_:
+				_sfx("hullhit")
 	ship_hit.emit(target, room_id, damage)
+
+func _sfx(name: String) -> void:
+	SFX.play(name)
 
 func _check_end() -> void:
 	if player.hull <= 0.0 or enemy.hull <= 0.0:
