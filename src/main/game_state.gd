@@ -14,6 +14,7 @@ var paused := false
 var run_active := false
 
 var sector := 0
+var map: SectorMap = null
 var beacons: Array = []          # Dictionary beacon nodes
 var current_beacon: Dictionary = {}
 var fleet_offset := 0.0          # rebel fleet advance
@@ -21,6 +22,7 @@ var jumped_this_sector := 0
 var victory_flag := false
 
 var last_result := ""
+var pending_encounter: Dictionary = {}   # {action, ...} at current beacon
 
 func new_run(ship_id: String = "kestrel") -> void:
 	var def := Content.get_ship(ship_id)
@@ -30,9 +32,13 @@ func new_run(ship_id: String = "kestrel") -> void:
 	run_active = true
 	victory_flag = false
 	sector = 1
+	map = SectorMap.new()
+	map.generate(sector)
+	beacons = map.beacons
 	beacons = []
 	fleet_offset = 0.0
 	jumped_this_sector = 0
+	pending_encounter = {}
 	ship_ready.emit()
 
 func spawn_enemy(rank: int = 0) -> Ship:
@@ -128,3 +134,72 @@ func add_resources(fuel_add: int = 0, missile_add: int = 0, drone_add: int = 0, 
 	player_ship.missiles = maxi(0, player_ship.missiles + missile_add)
 	player_ship.drone_parts = maxi(0, player_ship.drone_parts + drone_add)
 	player_ship.scrap = maxi(0, player_ship.scrap + scrap_add)
+
+# ----- Run structure (sector map / jumps / encounters) -----
+
+func can_jump() -> bool:
+	return map != null and map.can_jump() and player_ship != null and player_ship.fuel >= 1
+
+func attempt_jump(beacon_id: String, distance: int) -> bool:
+	if player_ship == null or map == null:
+		return false
+	if player_ship.fuel < 1:
+		return false
+	if not map.jump_to(beacon_id):
+		return false
+	player_ship.fuel -= 1
+	player_ship.charge_jump()
+	# risky jumps may damage hull
+	if distance > 1 and randf() < 0.12 * (distance - 1):
+		player_ship.damage_hull(1.0)
+	pending_encounter = _make_encounter()
+	return true
+
+func _make_encounter() -> Dictionary:
+	var b := map.current()
+	match b.type:
+		"battle":
+			spawn_enemy(sector)
+			return {"action": "battle"}
+		"event":
+			return {"action": "event", "event": Content.random_event()}
+		"store":
+			return {"action": "store"}
+		"exit":
+			if sector >= 8:
+				spawn_enemy(9)
+				return {"action": "battle", "boss": true}
+			return {"action": "next_sector"}
+	return {"action": "empty"}
+
+func resolve_event(choice_index: int) -> String:
+	var enc: Dictionary = pending_encounter
+	var ev: Dictionary = enc.get("event", {})
+	var choices: Array = ev.get("choices", [])
+	if choice_index >= choices.size():
+		return "No choice."
+	var outcome: Dictionary = choices[choice_index].get("outcome", {})
+	var scrap_add := int(outcome.get("scrap", 0))
+	add_resources(int(outcome.get("fuel", 0)), int(outcome.get("missiles", 0)),
+		int(outcome.get("drone_parts", 0)), scrap_add)
+	var dmg := float(outcome.get("damage", 0.0))
+	if dmg > 0.0:
+		player_ship.damage_hull(dmg)
+	if outcome.has("battle"):
+		spawn_enemy(sector)
+		pending_encounter = {"action": "battle"}
+		return "Battle!"
+	if outcome.get("crew_lose", 0) > 0 and not player_ship.crew.is_empty():
+		var removed: Array = player_ship.crew.pop_back()
+	pending_encounter = {}
+	return "Resolved."
+
+func next_sector() -> void:
+	sector += 1
+	if sector > 8:
+		victory_flag = true
+		return
+	map.generate(sector)
+	beacons = map.beacons
+	pending_encounter = {}
+	player_ship.refresh_after_sector()

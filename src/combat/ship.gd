@@ -682,3 +682,9 @@ func crew_count() -> int:
 func resource_str() -> String:
 	return "Hull %d  Fuel %d  Missiles %d  DroneParts %d  Scrap %d" % [
 		int(hull), fuel, missiles, drone_parts, scrap]
+
+func refresh_after_sector() -> void:
+	# advance into a new sector: reset jump, clear lingering ion
+	charge_jump()
+	for sys in systems.values():
+		sys.ion = 0

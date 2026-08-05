@@ -18,6 +18,8 @@ func run_tests() -> void:
 	_run_test("crew pathing", _test_crew())
 	await _test_combat()
 	await _test_boarding()
+	_run_test("sector map", _test_sector_map())
+	_run_test("jump flow", _test_jump())
 	if failures == 0:
 		print("ALL TESTS PASSED")
 	else:
@@ -136,3 +138,39 @@ func _test_boarding() -> void:
 		combat.tick(1.0)
 		guard += 1
 	_run_test("boarders damage systems", e.systems.weapons.health < 1)
+
+func _test_sector_map() -> bool:
+	var m := SectorMap.new()
+	m.generate(1)
+	if m.beacons.size() != SectorMap.COLS * SectorMap.ROWS:
+		return false
+	if m.current().type != "start":
+		return false
+	# must be able to reach the exit column through jumps
+	var reached_exit := false
+	var guard := 0
+	var probe := m
+	while not reached_exit and guard < 20:
+		guard += 1
+		var r := probe.reachable()
+		if r.is_empty():
+			return false
+		probe.jump_to(r[0])
+		reached_exit = probe.at_exit()
+	return reached_exit
+
+func _test_jump() -> bool:
+	GameState.new_run("kestrel")
+	if not GameState.can_jump():
+		return false
+	var reach := GameState.map.reachable()
+	if reach.is_empty():
+		return false
+	var fuel_before: int = GameState.player_ship.fuel
+	var ok := GameState.attempt_jump(reach[0], 1)
+	if not ok:
+		return false
+	if GameState.player_ship.fuel != fuel_before - 1:
+		return false
+	# jumping to exit advances sector
+	return true
