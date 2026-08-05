@@ -13,6 +13,7 @@ var player_id := ""
 var fleet_col := -2              # fleet column position (float floor)
 var visited := {}                # id -> true
 var _id_counter := 0
+var jump_range := 1              # max columns the player may jump per move
 
 func generate(sector_num: int) -> void:
 	sector = sector_num
@@ -100,9 +101,10 @@ func current() -> Dictionary:
 func reachable() -> Array:
 	var out: Array = []
 	var cur := current()
+	var max_col: int = cur.col + jump_range
 	for cid in cur.conns:
 		var b: Dictionary = beacon_map[cid]
-		if b.col > cur.col and not visited.has(b.id):
+		if b.col > cur.col and b.col <= max_col and not visited.has(b.id):
 			out.append(b.id)
 	return out
 
@@ -121,6 +123,11 @@ func jump_to(beacon_id: String) -> bool:
 	visited[player_id] = true
 	fleet_col += 1
 	return true
+
+func jump_distance_to(beacon_id: String) -> int:
+	if not beacon_map.has(beacon_id):
+		return 0
+	return beacon_map[beacon_id].col - current().col
 
 func repel_fleet(columns: int) -> void:
 	fleet_col = maxi(-2, fleet_col - columns)
@@ -155,6 +162,7 @@ func to_dict() -> Dictionary:
 		"player_id": player_id,
 		"fleet_col": fleet_col,
 		"visited": visited_ids,
+		"jump_range": jump_range,
 	}
 
 static func from_dict(data: Dictionary) -> SectorMap:
@@ -169,4 +177,5 @@ static func from_dict(data: Dictionary) -> SectorMap:
 	m.beacon_map.clear()
 	for b in m.beacons:
 		m.beacon_map[b.id] = b
+	m.jump_range = int(data.get("jump_range", 1))
 	return m

@@ -99,7 +99,7 @@ func _show_map() -> void:
 	header_label.text = _header_text()
 	hb.add_child(header_label)
 	hint_label = Label.new()
-	hint_label.text = "Tap a highlighted beacon to jump (fuel:1). Rebel fleet advances each jump."
+	hint_label.text = "Tap a highlighted beacon to jump (1 fuel/column). Rebel fleet advances each jump."
 	hint_label.add_theme_font_size_override("font_size", 14)
 	hb.add_child(hint_label)
 	var range_h := HBoxContainer.new()
@@ -136,8 +136,12 @@ func _header_text() -> String:
 
 func _set_range(r: int) -> void:
 	jump_range = r
+	if GameState.map != null:
+		GameState.map.jump_range = r
+	if map_view != null:
+		map_view.queue_redraw()
 	if hint_label != null:
-		hint_label.text = "Range set to %d. Tap a highlighted beacon to jump." % r
+		hint_label.text = "Range %d. Jumping costs 1 fuel per column. Tap a highlighted beacon." % r
 
 func _on_beacon_clicked(beacon_id: String) -> void:
 	if state != State.MAP:
@@ -276,6 +280,8 @@ func _show_store() -> void:
 	box.add_child(title)
 	var stock: Array = GameState.stock_systems()
 	for sid in stock:
+		if not GameState.player_ship.systems.has(sid):
+			continue
 		var sys: SystemState = GameState.player_ship.systems[sid]
 		if sys.level >= sys.max_level_def:
 			continue
@@ -293,6 +299,15 @@ func _show_store() -> void:
 		rb0.custom_minimum_size = Vector2(560, 40)
 		rb0.pressed.connect(_buy_reactor.bind(rcost))
 		box.add_child(rb0)
+	var new_systems := {"cloak": 90, "hacking": 85, "mind_control": 80}
+	for sid in new_systems:
+		if p.systems.has(sid):
+			continue
+		var nb := Button.new()
+		nb.text = "Install %s [%d scrap]" % [Content.get_system(sid).get("name", sid), new_systems[sid]]
+		nb.custom_minimum_size = Vector2(560, 40)
+		nb.pressed.connect(_buy_system.bind(sid, int(new_systems[sid])))
+		box.add_child(nb)
 	for wid in GameState.stock_weapons():
 		var cost := int(Content.get_weapon(wid).get("price", 30))
 		var b := Button.new()
@@ -351,6 +366,14 @@ func _buy_reactor(cost: int) -> void:
 	if p.scrap >= cost and p.reactor < 12:
 		p.scrap -= cost
 		p.reactor += 1
+		_sfx("purchase")
+		_show_store()
+
+func _buy_system(sid: String, cost: int) -> void:
+	var p := GameState.player_ship
+	if p.scrap >= cost and not p.systems.has(sid):
+		p.scrap -= cost
+		p.install_system(sid)
 		_sfx("purchase")
 		_show_store()
 

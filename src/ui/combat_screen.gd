@@ -18,6 +18,8 @@ var targeting_enemy := false
 var selected_crew: CrewMember = null
 var crew_buttons: Dictionary = {}
 var _ended := false
+var targeting_hack := false
+var targeting_mc := false
 
 var hud: Control
 var resources_label: Label
@@ -25,6 +27,7 @@ var log_label: Label
 var pause_button: Button
 var battery_button: Button
 var doors_button: Button
+var cloak_button: Button
 var power_panel: PanelContainer
 var power_boxes := {}          # system_id -> Label
 var weapon_buttons := []       # array of {button, weapon}
@@ -77,6 +80,10 @@ func start_battle(p: Ship, e: Ship, sector: int) -> void:
 	GameState.paused = false
 	_ended = false
 	player.doors_locked = false
+	player.cloak_active = false
+	player.hack_target_sys = ""
+	player.hack_duration_left = 0.0
+	player.mc_crew = null
 	_build_background()
 	combat = CombatManager.new(player, enemy, GameState.pending_encounter.get("hazard", ""))
 	GameState.in_battle = true
@@ -170,6 +177,14 @@ func _build_hud() -> void:
 		doors_button.pressed.connect(_toggle_doors)
 		hud.add_child(doors_button)
 
+	if player.systems.has("cloak"):
+		cloak_button = Button.new()
+		cloak_button.text = "Cloak"
+		cloak_button.position = Vector2(VP().x - 640, 8)
+		cloak_button.custom_minimum_size = Vector2(90, 48)
+		cloak_button.pressed.connect(_toggle_cloak)
+		hud.add_child(cloak_button)
+
 	power_panel = PanelContainer.new()
 	power_panel.position = Vector2(12, 540)
 	var vbox := VBoxContainer.new()
@@ -187,6 +202,7 @@ func _build_hud() -> void:
 	_build_weapons_panel()
 	_build_crew_panel()
 	_build_teleporter_panel(self)
+	_build_advanced_panel()
 
 	log_label = Label.new()
 	log_label.position = Vector2(12, 120)
@@ -274,6 +290,65 @@ func _build_teleporter_panel(_ignore) -> void:
 		vbox.add_child(recall)
 		hud.add_child(panel)
 
+var hack_button: Button
+var mc_button: Button
+
+func _build_advanced_panel() -> void:
+	hack_button = null
+	mc_button = null
+	if player.systems.has("hacking"):
+		hack_button = Button.new()
+		hack_button.text = "Hack (enemy system)"
+		hack_button.custom_minimum_size = Vector2(190, 44)
+		hack_button.pressed.connect(_select_hack)
+		var p := PanelContainer.new()
+		p.position = Vector2(660, 230)
+		var v := VBoxContainer.new()
+		p.add_child(v)
+		v.add_child(hack_button)
+		hud.add_child(p)
+	if player.systems.has("mind_control"):
+		mc_button = Button.new()
+		mc_button.text = "Mind Control (crew)"
+		mc_button.custom_minimum_size = Vector2(190, 44)
+		mc_button.pressed.connect(_select_mc)
+		var p2 := PanelContainer.new()
+		p2.position = Vector2(860, 230)
+		var v2 := VBoxContainer.new()
+		p2.add_child(v2)
+		v2.add_child(mc_button)
+		hud.add_child(p2)
+
+func _select_hack() -> void:
+	targeting_hack = true
+	targeting_mc = false
+	if hack_button != null:
+		hack_button.modulate = Color(1, 1, 0.4)
+	_log("Select an enemy system room to hack.")
+
+func _select_mc() -> void:
+	targeting_mc = true
+	targeting_hack = false
+	if mc_button != null:
+		mc_button.modulate = Color(1, 1, 0.4)
+	_log("Select an enemy crew member to control.")
+
+func _refresh_advanced() -> void:
+	if hack_button != null:
+		if player.hack_target_sys != "":
+			hack_button.text = "Hacking (%ds)" % int(ceil(player.hack_duration_left))
+		elif player.hack_ready():
+			hack_button.text = "Hack (enemy system)"
+		else:
+			hack_button.text = "Hack (%.0f%%)" % (player.hack_charge * 100)
+	if mc_button != null:
+		if player.mc_crew != null:
+			mc_button.text = "Controlling (%ds)" % int(ceil(player.mc_crew.mc_timer))
+		elif player.mc_ready():
+			mc_button.text = "Mind Control (crew)"
+		else:
+			mc_button.text = "Mind Ctl (%.0f%%)" % (player.mc_charge * 100)
+
 func _select_crew(cm: CrewMember) -> void:
 	selected_crew = cm
 	_log("Selected %s. Tap a room on your ship to move them." % cm.name)
@@ -322,6 +397,31 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_tap(event.position)
 
 func _handle_tap(pos: Vector2) -> void:
+	if targeting_hack or targeting_mc:
+		if enemy_view != null:
+			var elocal: Vector2 = enemy_view.to_local(pos)
+			var eroom: String = enemy_view.world_to_room(elocal)
+			if eroom != "":
+				if targeting_hack:
+					var sid: String = enemy.rooms[eroom].get("system", "")
+					if player.activate_hack(sid):
+						_log("Hacking their %s!" % Content.get_system(sid).get("name", sid))
+					else:
+						_log("Not ready to hack (no system there or cooldown).")
+					targeting_hack = false
+					return
+				if targeting_mc:
+					var target: CrewMember = null
+					for cm in enemy.crew:
+						if cm.alive() and cm.room.id == eroom:
+							target = cm
+							break
+					if target != null and player.activate_mc(target):
+						_log("%s fights for us now!" % target.name)
+					else:
+						_log("Could not mind-control that crew member.")
+					targeting_mc = false
+					return
 	if targeting_enemy and selected_weapon != null and enemy_view != null:
 		var local: Vector2 = enemy_view.to_local(pos)
 		var room_id: String = enemy_view.world_to_room(local)
@@ -371,6 +471,23 @@ func _toggle_doors() -> void:
 	doors_button.text = "Unlock" if player.doors_locked else "Lock Doors"
 	_log("Doors locked." if player.doors_locked else "Doors unlocked.")
 
+func _toggle_cloak() -> void:
+	if player.activate_cloak():
+		_log("Cloaking engaged. Incoming shots miss until it wears off.")
+		_refresh_cloak_button()
+	else:
+		_log("Cloak on cooldown or unpowered.")
+
+func _refresh_cloak_button() -> void:
+	if cloak_button == null:
+		return
+	if player.cloak_active:
+		cloak_button.text = "Cloaked (%ds)" % int(ceil(player.cloak_timer))
+	elif player.cloak_ready():
+		cloak_button.text = "Cloak"
+	else:
+		cloak_button.text = "Cloak (%.0f%%)" % (player.cloak_charge * 100)
+
 func _refresh_battery_button() -> void:
 	if battery_button == null:
 		return
@@ -392,9 +509,20 @@ func _adj_power(sid: String, delta: int, label: Label) -> void:
 	_refresh_ui()
 
 func _flee() -> void:
-	if not _ended:
-		_ended = true
-		battle_ended.emit(null)
+	if _ended:
+		return
+	if GameState.pending_encounter.get("boss", false):
+		_log("The flagship's weapons lock you in. You cannot flee!")
+		return
+	if player.dodge_chance() <= 0.0:
+		_log("Engines are down. You cannot flee!")
+		return
+	# fleeing takes time; engines give you a chance to slip away
+	if randf() * 100.0 > player.dodge_chance() + 15.0:
+		_log("You failed to escape!")
+		return
+	_ended = true
+	battle_ended.emit(null)
 
 # ---------- loop ----------
 
@@ -404,10 +532,17 @@ func _process(delta: float) -> void:
 	if selected_weapon != null and selected_weapon.target_room_id != "":
 		selected_weapon.enabled = true
 	player.battery_tick(delta)
+	if hack_button != null:
+		hack_button.modulate = Color.WHITE
+	if mc_button != null:
+		mc_button.modulate = Color.WHITE
 	combat.tick(delta)
 	_refresh_weapon_buttons()
 	if battery_button != null and player.battery_capacity > 0:
 		_refresh_battery_button()
+	if cloak_button != null:
+		_refresh_cloak_button()
+	_refresh_advanced()
 	player_view.queue_redraw()
 	enemy_view.queue_redraw()
 	if combat.combat_over():

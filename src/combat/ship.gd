@@ -172,6 +172,29 @@ func room_with_system(sid: String) -> String:
 			return r
 	return ""
 
+func install_system(sid: String) -> bool:
+	if systems.has(sid) or not Content.systems.has(sid):
+		return false
+	var st := SystemState.new(Content.get_system(sid), 1, reactor)
+	systems[sid] = st
+	# give the new system a physical room (reuse an empty room or carve a new one)
+	var rid := ""
+	for r in room_order:
+		if rooms[r].system == "":
+			rid = r
+			break
+	if rid == "":
+		rid = "sys_%s" % sid
+		var rect := Rect2i(0, grid.y - 2, 3, 2)
+		var room := {"id": rid, "system": sid, "rect": rect, "oxygen": 1.0, "fire": 0.0, "breach": false}
+		rooms[rid] = room
+		room_order.append(rid)
+	else:
+		rooms[rid].system = sid
+	if sid == "shields":
+		_refresh_shields()
+	return true
+
 func _refresh_shields() -> void:
 	var sys: SystemState = systems.get("shields")
 	shield_max = sys.stat("levels", 0)
@@ -282,6 +305,17 @@ func _room_manned(room_id: String) -> bool:
 		if cm.room.id == room_id and cm.alive():
 			return true
 	return false
+
+# Zoltan crew grant one extra power pip to the system of the room they occupy.
+func zoltan_bonus(sid: String) -> int:
+	var rid := system_room_id(sid)
+	if rid == "":
+		return 0
+	var bonus := 0
+	for cm in crew:
+		if cm.alive() and cm.race == "zoltan" and cm.room.id == rid:
+			bonus += 1
+	return bonus
 
 func _ship_alive() -> bool:
 	return hull > 0.0
@@ -440,7 +474,7 @@ func _process_crew_one(cm: CrewMember, delta: float) -> void:
 	# hazard damage
 	if room.fire > 0.3 and not _fire_resist(cm):
 		cm.hp -= 3.0 * delta
-	if room.oxygen < 0.2:
+	if room.oxygen < 0.2 and cm.needs_oxygen():
 		cm.hp -= 3.0 * delta
 	# medbay heal
 	var medroom := system_room_id("medbay")
@@ -672,6 +706,7 @@ func drones_online() -> Array:
 func _process_weapons(delta: float) -> void:
 	var ws: SystemState = systems.get("weapons")
 	var pwr := ws.power if ws != null else 0
+	pwr += zoltan_bonus("weapons")
 	var consumed := 0
 	for w in weapons:
 		if not w.enabled:
@@ -687,6 +722,7 @@ func _process_weapons(delta: float) -> void:
 func _process_drones(delta: float) -> void:
 	var ds: SystemState = systems.get("drones")
 	var pwr := ds.power if ds != null else 0
+	pwr += zoltan_bonus("drones")
 	var consumed := 0
 	for d in drones:
 		if not d.active:
@@ -712,27 +748,151 @@ func charge_jump() -> void:
 	jump_ready = false
 
 func _process_cloak(delta: float) -> void:
+	if not is_powered("cloak"):
+		return
 	if cloak_active:
 		cloak_timer -= delta
 		if cloak_timer <= 0.0:
 			cloak_active = false
 			cloak_charge = 0.0
+	elif cloak_charge < 1.0:
+		var cd := float(systems.cloak.stat("charge_time", 20.0))
+		cloak_charge = minf(1.0, cloak_charge + delta / maxf(cd, 0.1))
+
+func cloak_ready() -> bool:
+	return is_powered("cloak") and not cloak_active and cloak_charge >= 1.0
+
+func activate_cloak() -> bool:
+	if not cloak_ready():
+		return false
+	cloak_active = true
+	cloak_charge = 0.0
+	cloak_timer = float(systems.cloak.stat("duration", 6.0))
+	cloak_duration = cloak_timer
+	return true
+
+# ----- Hacking (disables a target system on the enemy ship) -----
+
+var hack_charge := 1.0
+var hack_target_sys := ""
+var hack_duration_left := 0.0
+
+func hack_ready() -> bool:
+	return is_powered("hacking") and hack_target_sys == "" and hack_charge >= 1.0
+
+func hack_charge_time() -> float:
+	return float(systems.hacking.stat("charge_time", 20.0))
+
+func hack_duration() -> float:
+	return float(systems.hacking.stat("hack_duration", 12.0))
+
+func activate_hack(sid: String) -> bool:
+	if not hack_ready() or not Content.systems.has(sid):
+		return false
+	hack_target_sys = sid
+	hack_duration_left = hack_duration()
+	hack_charge = 0.0
+	_sfx("hack")
+	return true
+
+func _process_hack(delta: float) -> void:
+	if not is_powered("hacking"):
+		hack_target_sys = ""
+		hack_charge = 0.0
+		return
+	if hack_target_sys != "":
+		hack_duration_left -= delta
+		if hack_duration_left <= 0.0:
+			hack_duration_left = 0.0
+			hack_target_sys = ""
+	else:
+		hack_charge = minf(1.0, hack_charge + delta / maxf(hack_charge_time(), 0.1))
+
+# ----- Mind control (turns an enemy crew member against their ship) -----
+
+var mc_charge := 1.0
+var mc_crew: CrewMember = null
+
+func mc_ready() -> bool:
+	return is_powered("mind_control") and mc_crew == null and mc_charge >= 1.0
+
+func mc_charge_time() -> float:
+	return float(systems.mind_control.stat("charge_time", 20.0))
+
+func mc_duration() -> float:
+	return float(systems.mind_control.stat("mc_duration", 10.0))
+
+func activate_mc(crew: CrewMember) -> bool:
+	if not mc_ready() or crew == null or not crew.alive():
+		return false
+	mc_crew = crew
+	mc_charge = 0.0
+	crew.mc_timer = mc_duration()
+	crew.hostile = true
+	# the turned crew fights for you from inside their own hull
+	var owner: Ship = crew.ship
+	owner.crew.erase(crew)
+	owner.boarders.append(crew)
+	_sfx("mindcontrol")
+	return true
+
+func _process_mc(delta: float) -> void:
+	if not is_powered("mind_control"):
+		mc_crew = null
+		mc_charge = 0.0
+		return
+	if mc_crew == null:
+		mc_charge = minf(1.0, mc_charge + delta / maxf(mc_charge_time(), 0.1))
+		return
+	if mc_crew.mc_timer > 0.0:
+		mc_crew.mc_timer -= delta
+	if mc_crew.mc_timer <= 0.0 or not mc_crew.alive():
+		var owner: Ship = mc_crew.ship
+		owner.boarders.erase(mc_crew)
+		if mc_crew.alive():
+			mc_crew.hostile = false
+			mc_crew.pos = owner._room_center_tile(mc_crew.room.id)
+			owner.crew.append(mc_crew)
+		mc_crew = null
 
 # ----- Main tick -----
 
 func tick(delta: float) -> void:
 	_process_weapons(delta)
 	_process_drones(delta)
+	_process_repair_drones(delta)
 	_process_environment(delta)
 	_process_crew(delta)
 	_process_jump(delta)
 	_process_cloak(delta)
 	_process_shields(delta)
 	_process_teleporter(delta)
+	_process_hack(delta)
+	_process_mc(delta)
 	# ion decay
 	for sys in systems.values():
 		if sys.ion > 0:
 			sys.ion -= 1
+
+func _process_repair_drones(delta: float) -> void:
+	var ds: SystemState = systems.get("drones")
+	if ds == null or not ds.active():
+		return
+	var pwr := ds.power + zoltan_bonus("drones")
+	var consumed := 0
+	for d in drones:
+		if not d.active or d.type != "repair":
+			continue
+		if consumed + d.power_cost() > pwr:
+			continue
+		consumed += d.power_cost()
+		var rate := float(d.def.get("repair_rate", 1.0))
+		if hull < hull_max:
+			repair_hull(rate * delta)
+		for rid in room_order:
+			var room: Dictionary = rooms[rid]
+			if room.fire > 0.0:
+				room.fire = maxf(0.0, room.fire - rate * delta * 0.5)
 
 func _process_shields(delta: float) -> void:
 	if shield_bubbles >= shield_max:
@@ -803,6 +963,12 @@ func to_dict() -> Dictionary:
 		"crew": crew_d,
 		"shield_bubbles": shield_bubbles,
 		"jump_charge": jump_charge,
+		"cloak_active": cloak_active,
+		"cloak_charge": cloak_charge,
+		"hack_charge": hack_charge,
+		"hack_target_sys": hack_target_sys,
+		"hack_duration_left": hack_duration_left,
+		"mc_charge": mc_charge,
 	}
 
 func _room_defs() -> Array:
@@ -883,4 +1049,10 @@ static func from_dict(data: Dictionary) -> Ship:
 	s.jump_charge = float(data.get("jump_charge", 0.0))
 	if s.jump_charge >= 1.0:
 		s.jump_ready = true
+	s.cloak_active = bool(data.get("cloak_active", false))
+	s.cloak_charge = float(data.get("cloak_charge", 1.0))
+	s.hack_charge = float(data.get("hack_charge", 1.0))
+	s.hack_target_sys = str(data.get("hack_target_sys", ""))
+	s.hack_duration_left = float(data.get("hack_duration_left", 0.0))
+	s.mc_charge = float(data.get("mc_charge", 1.0))
 	return s

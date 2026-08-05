@@ -242,15 +242,14 @@ func can_jump() -> bool:
 func attempt_jump(beacon_id: String, distance: int) -> bool:
 	if player_ship == null or map == null:
 		return false
-	if player_ship.fuel < 1:
+	map.jump_range = clampi(distance, 1, 3)
+	var cost := map.jump_distance_to(beacon_id)
+	if cost <= 0 or player_ship.fuel < cost:
 		return false
 	if not map.jump_to(beacon_id):
 		return false
-	player_ship.fuel -= 1
+	player_ship.fuel -= cost
 	player_ship.charge_jump()
-	# risky jumps may damage hull
-	if distance > 1 and randf() < 0.12 * (distance - 1):
-		player_ship.damage_hull(1.0)
 	# the rebel fleet may catch your ship after jumping
 	if map.caught():
 		map.repel_fleet(2)          # fight them off; they fall back
@@ -326,7 +325,8 @@ func next_sector() -> void:
 	player_ship.refresh_after_sector()
 
 func stock_systems() -> Array:
-	return ["shields", "engines", "weapons", "oxygen", "medbay", "drones", "teleporter"]
+	return ["shields", "engines", "weapons", "oxygen", "medbay", "drones", "teleporter",
+		"doors", "piloting", "cloak", "hacking", "mind_control"]
 
 func stock_weapons() -> Array:
 	# Pool broadens with sector rank; later sectors offer rarer, stronger guns.

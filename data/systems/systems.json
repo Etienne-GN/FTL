@@ -107,6 +107,24 @@
       "desc": "Crew member here improves dodge chance.",
       "levels": [0, 0, 0],
       "autopilot_dodge": [0.0, 0.6, 1.0]
+    },
+    {
+      "id": "hacking",
+      "name": "Hacking",
+      "max_level": 3,
+      "desc": "Deploys a drone that disables a target system.",
+      "levels": [0, 0, 0],
+      "charge_time": [20.0, 15.0, 12.0],
+      "hack_duration": [12.0, 15.0, 18.0]
+    },
+    {
+      "id": "mind_control",
+      "name": "Mind Control",
+      "max_level": 3,
+      "desc": "Temporarily turns an enemy crew member against their own ship.",
+      "levels": [0, 0, 0],
+      "charge_time": [20.0, 15.0, 12.0],
+      "mc_duration": [10.0, 13.0, 16.0]
     }
   ]
 }

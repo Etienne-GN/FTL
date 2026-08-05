@@ -11,6 +11,7 @@ var level: int = 0
 var power: int = 0
 var health: int = 1          # 1 = intact, 0 = destroyed by system damage
 var ion: int = 0             # ion turns remaining (disables system)
+var hack_timer: float = 0.0  # seconds left of an enemy hacking drone lock
 var min_power: int = 1
 var max_level_def: int = 1
 
@@ -33,7 +34,7 @@ func clamp_power(v: int) -> int:
 	return clampi(v, 0, level)
 
 func active() -> bool:
-	return health > 0 and level > 0
+	return health > 0 and level > 0 and hack_timer <= 0.0
 
 func disabled_by_ion() -> bool:
 	return ion > 0

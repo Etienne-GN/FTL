@@ -30,12 +30,22 @@ func tick(delta: float) -> void:
 	time += delta
 	player.tick(delta)
 	enemy.tick(delta)
+	_apply_hacks()
 	_player_fire()
 	_enemy_ai(delta)
 	_drones(delta)
 	_advance_projectiles(delta)
 	_process_hazard(delta)
 	_check_end()
+
+func _apply_hacks() -> void:
+	_apply_hack_from(player, enemy)
+	_apply_hack_from(enemy, player)
+
+func _apply_hack_from(hacker: Ship, victim: Ship) -> void:
+	if hacker.hack_target_sys == "" or not victim.systems.has(hacker.hack_target_sys):
+		return
+	victim.systems[hacker.hack_target_sys].hack_timer = maxf(0.0, hacker.hack_duration_left)
 
 func _process_hazard(delta: float) -> void:
 	if hazard == "":
@@ -241,6 +251,10 @@ func _resolve_projectile(p: Dictionary) -> void:
 	var target: Ship = p.target
 	var wdef: Dictionary = p.weapon
 	var room_id: String = p.room
+	# cloaked ships are untargetable: every shot misses
+	if target.cloak_active:
+		ship_dodged.emit(target)
+		return
 	# dodge (nebulas muddy the sensors)
 	var evade := target.dodge_chance()
 	if hazard == "nebula":
@@ -304,13 +318,23 @@ func _sfx(name: String) -> void:
 func _check_end() -> void:
 	if player.hull <= 0.0 or enemy.hull <= 0.0:
 		combat_active = false
+		return
+	# a ship with nobody left to fight is captured: only boarder-viable crews
+	if _abandoned(enemy) and player.hull > 0.0:
+		combat_active = false
+		return
+
+func _abandoned(s: Ship) -> bool:
+	return s.crew_count() == 0 and s.boarders.filter(func(b): return b.alive()).size() == 0
 
 func combat_over() -> bool:
 	return not combat_active
 
 func winner() -> Ship:
-	if enemy.hull <= 0.0:
-		return player
 	if player.hull <= 0.0:
 		return enemy
+	if enemy.hull <= 0.0:
+		return player
+	if _abandoned(enemy):
+		return player
 	return null

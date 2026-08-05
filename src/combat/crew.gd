@@ -9,6 +9,9 @@ const RACES := {
 	"rock": {"hp": 130.0, "speed": 0.6, "fire_resist": true},
 	"zoltan": {"hp": 60.0, "speed": 1.0, "power": 1},
 	"human_mantis": {"hp": 80.0, "speed": 1.1},
+	"slug": {"hp": 90.0, "speed": 1.0, "no_oxygen": false, "breach_resist": false},
+	"lanius": {"hp": 100.0, "speed": 1.0, "no_oxygen": true},
+	"crystal": {"hp": 150.0, "speed": 1.0, "fight": 1.1},
 }
 
 var name: String = "Crew"
@@ -25,6 +28,7 @@ var pos: Vector2 = Vector2.ZERO # position in ship-local tile coords
 var path: Array = []            # queue of room ids to traverse
 var speed := 1.4                # tiles per second
 var hostile := false            # true when boarding an enemy ship
+var mc_timer := 0.0             # seconds left of mind control (turned crew)
 
 const XP_PER_LEVEL := 100
 const MAX_LEVEL := 2
@@ -58,6 +62,9 @@ func gain_xp(skill_key: String, amount: float) -> void:
 
 func skill_bonus(skill_key: String) -> float:
 	return 1.0 + 0.5 * stat(skill_key)
+
+func needs_oxygen() -> bool:
+	return not bool(RACES.get(race, {}).get("no_oxygen", false))
 
 func assign_room(r: Dictionary) -> void:
 	room = r
