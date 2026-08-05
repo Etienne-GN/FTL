@@ -17,7 +17,7 @@ func save_meta() -> void:
 	var unlocked := ["kestrel"]
 	if GameState.victory_flag:
 		unlocked = ["kestrel", "engi_a"]
-	var meta := {"unlocked": unlocked}
+	var meta := {"unlocked": unlocked, "highest_sector": GameState.highest_sector}
 	var file := FileAccess.open(META_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(meta))

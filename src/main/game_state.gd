@@ -23,6 +23,7 @@ var victory_flag := false
 
 var last_result := ""
 var pending_encounter: Dictionary = {}   # {action, ...} at current beacon
+var highest_sector := 1
 
 func new_run(ship_id: String = "kestrel") -> void:
 	var def := Content.get_ship(ship_id)
@@ -35,7 +36,6 @@ func new_run(ship_id: String = "kestrel") -> void:
 	map = SectorMap.new()
 	map.generate(sector)
 	beacons = map.beacons
-	beacons = []
 	fleet_offset = 0.0
 	jumped_this_sector = 0
 	pending_encounter = {}
@@ -95,6 +95,47 @@ func _enemy_def(rank: int) -> Dictionary:
 		"weapons": weapons,
 		"drones": [],
 		"rooms": _enemy_rooms(),
+	}
+
+func _boss_def() -> Dictionary:
+	var rooms := [
+		{"id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1},
+		{"id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 2},
+		{"id": "doors", "system": "doors", "x": 10, "y": 0, "w": 3, "h": 1},
+		{"id": "weapons", "system": "weapons", "x": 0, "y": 2, "w": 4, "h": 2},
+		{"id": "medbay", "system": "medbay", "x": 5, "y": 2, "w": 2, "h": 2},
+		{"id": "oxygen", "system": "oxygen", "x": 8, "y": 2, "w": 2, "h": 2},
+		{"id": "engines", "system": "engines", "x": 11, "y": 2, "w": 3, "h": 2},
+		{"id": "barracks", "system": null, "x": 1, "y": 5, "w": 4, "h": 2},
+		{"id": "teleporter", "system": "teleporter", "x": 6, "y": 4, "w": 3, "h": 2},
+	]
+	return {
+		"id": "flagship",
+		"name": "The Flagship",
+		"grid": {"w": 14, "h": 7},
+		"hull": 20,
+		"reactor": 8,
+		"power": {"shields": 3, "engines": 2, "weapons": 3, "oxygen": 1, "teleporter": 1},
+		"start_fuel": 0,
+		"start_missiles": 0,
+		"start_drone_parts": 0,
+		"start_scrap": 0,
+		"crew": [
+			{"name": "Flagship 1", "race": "mantis"},
+			{"name": "Flagship 2", "race": "mantis"},
+			{"name": "Flagship 3", "race": "rock"},
+			{"name": "Flagship 4", "race": "engi"},
+		],
+		"systems": {
+			"shields": {"level": 3},
+			"engines": {"level": 3},
+			"weapons": {"level": 4},
+			"oxygen": {"level": 1},
+			"teleporter": {"level": 2},
+		},
+		"weapons": ["burst_laser_2", "artemis", "heavy_ion"],
+		"drones": [],
+		"rooms": rooms,
 	}
 
 func _enemy_crew(rank: int) -> Array:
@@ -167,7 +208,9 @@ func _make_encounter() -> Dictionary:
 			return {"action": "store"}
 		"exit":
 			if sector >= 8:
-				spawn_enemy(9)
+				enemy_ship = Ship.create(_boss_def(), "enemy")
+				in_battle = true
+				enemy_changed.emit()
 				return {"action": "battle", "boss": true}
 			return {"action": "next_sector"}
 	return {"action": "empty"}
@@ -206,6 +249,7 @@ func resolve_event(choice_index: int) -> String:
 
 func next_sector() -> void:
 	sector += 1
+	highest_sector = maxi(highest_sector, sector)
 	if sector > 8:
 		victory_flag = true
 		return
