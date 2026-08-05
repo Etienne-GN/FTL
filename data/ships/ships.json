@@ -121,6 +121,88 @@
         { "id": "barracks", "system": null, "x": 6, "y": 4, "w": 3, "h": 2 },
         { "id": "drone", "system": "drones", "x": 9, "y": 4, "w": 3, "h": 2 }
       ]
+    },
+    {
+      "id": "kestrel_b",
+      "name": "The Red-Tail (Kestrel B)",
+      "desc": "Armed with four basic lasers for overwhelming rapid fire.",
+      "grid": { "w": 14, "h": 7 },
+      "hull": 6,
+      "reactor": 5,
+      "power": { "shields": 1, "engines": 1, "weapons": 4, "oxygen": 1 },
+      "start_fuel": 6,
+      "start_missiles": 0,
+      "start_drone_parts": 0,
+      "start_scrap": 0,
+      "crew": [
+        { "name": "Vex", "race": "human", "skills": { "piloting": 1 } },
+        { "name": "Bryn", "race": "human", "skills": { "weapons": 1 } },
+        { "name": "Orion", "race": "human", "skills": { "shields": 1 } },
+        { "name": "Corin", "race": "human", "skills": { "engines": 1 } }
+      ],
+      "systems": {
+        "shields": { "level": 1 },
+        "engines": { "level": 2 },
+        "weapons": { "level": 4 },
+        "oxygen": { "level": 1 },
+        "medbay": { "level": 1 },
+        "doors": { "level": 1 },
+        "piloting": { "level": 1 }
+      },
+      "weapons": ["basic_laser", "basic_laser", "basic_laser", "basic_laser"],
+      "drones": [],
+      "rooms": [
+        { "id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1 },
+        { "id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 2 },
+        { "id": "doors", "system": "doors", "x": 11, "y": 0, "w": 3, "h": 1 },
+        { "id": "weapons", "system": "weapons", "x": 0, "y": 2, "w": 4, "h": 2 },
+        { "id": "medbay", "system": "medbay", "x": 5, "y": 2, "w": 2, "h": 2 },
+        { "id": "oxygen", "system": "oxygen", "x": 8, "y": 2, "w": 2, "h": 2 },
+        { "id": "engines", "system": "engines", "x": 11, "y": 2, "w": 3, "h": 2 },
+        { "id": "barracks", "system": null, "x": 1, "y": 5, "w": 4, "h": 2 },
+        { "id": "drone", "system": "drones", "x": 6, "y": 4, "w": 3, "h": 2 },
+        { "id": "teleporter", "system": "teleporter", "x": 9, "y": 4, "w": 3, "h": 2 }
+      ]
+    },
+    {
+      "id": "engi_b",
+      "name": "The Vortex (Engi B)",
+      "desc": "Heavy drone reliance with a single Engi crew and ion weaponry.",
+      "grid": { "w": 14, "h": 7 },
+      "hull": 6,
+      "reactor": 6,
+      "power": { "shields": 1, "engines": 1, "drones": 2, "weapons": 2, "oxygen": 1 },
+      "start_fuel": 6,
+      "start_missiles": 0,
+      "start_drone_parts": 8,
+      "start_scrap": 0,
+      "crew": [
+        { "name": "Unit-4", "race": "engi", "skills": { "drones": 1, "repair": 2 } }
+      ],
+      "systems": {
+        "shields": { "level": 1 },
+        "engines": { "level": 2 },
+        "drones": { "level": 3 },
+        "weapons": { "level": 2 },
+        "oxygen": { "level": 1 },
+        "medbay": { "level": 1 },
+        "doors": { "level": 1 },
+        "piloting": { "level": 1 }
+      },
+      "weapons": [ "heavy_ion" ],
+      "drones": [ "combat_1", "repair_1" ],
+      "rooms": [
+        { "id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1 },
+        { "id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 2 },
+        { "id": "doors", "system": "doors", "x": 11, "y": 0, "w": 3, "h": 1 },
+        { "id": "weapons", "system": "weapons", "x": 0, "y": 2, "w": 4, "h": 2 },
+        { "id": "drones", "system": "drones", "x": 5, "y": 2, "w": 2, "h": 2 },
+        { "id": "medbay", "system": "medbay", "x": 8, "y": 2, "w": 2, "h": 2 },
+        { "id": "engines", "system": "engines", "x": 11, "y": 2, "w": 3, "h": 2 },
+        { "id": "oxygen", "system": "oxygen", "x": 0, "y": 5, "w": 4, "h": 2 },
+        { "id": "barracks", "system": null, "x": 4, "y": 5, "w": 3, "h": 2 },
+        { "id": "teleporter", "system": "teleporter", "x": 8, "y": 5, "w": 3, "h": 2 }
+      ]
     }
   ]
 }
