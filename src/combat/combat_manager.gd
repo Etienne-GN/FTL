@@ -74,9 +74,20 @@ func _process_hazard(delta: float) -> void:
 
 func _player_fire() -> void:
 	for w in player.weapons_online():
-		if w.ready:
+		if w.ready and w.autofire:
 			_fire_weapon(player, enemy, w)
 			w.reset_charge()
+
+func manual_fire(w: WeaponState) -> bool:
+	if w not in player.weapons_online():
+		return false
+	if not w.ready:
+		return false
+	if w.target_room_id == "":
+		return false
+	_fire_weapon(player, enemy, w)
+	w.reset_charge()
+	return true
 
 func _enemy_ai(delta: float) -> void:
 	enemy_think -= delta

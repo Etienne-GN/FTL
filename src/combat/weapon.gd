@@ -9,6 +9,7 @@ var charge: float = 0.0
 var cooldown: float = 8.0
 var ready: bool = false
 var enabled: bool = true
+var autofire: bool = true
 var target_room_id: String = ""       # empty -> auto-pick
 var target_system: String = ""        # prefer a system to aim at
 
