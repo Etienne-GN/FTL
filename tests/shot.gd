@@ -16,7 +16,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	var probs: Array = main.combat_screen._check_layout()
 	await get_tree().process_frame
-	var img := get_viewport().get_viewport_texture().get_image()
+	var img: Image = get_window().get_texture().get_image()
 	if img != null:
 		img.save_png("/tmp/opencode/combat.png")
 		print("COMBAT SHOT SAVED")
