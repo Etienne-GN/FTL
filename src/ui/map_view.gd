@@ -11,13 +11,105 @@ var spacing := Vector2(170, 120)
 var origin := Vector2(70, 150)
 var r := 18.0
 var beacon_buttons := {}
+var _tex_cache := {}
+var _decor := []                 # [{texture, pos, size, color}]
+var _theme_id := ""
+
+const BG_DIR := "res://assets/sprites/backgrounds/extracted/"
+const PLANET_DIR := "res://assets/sprites/planets/extracted/"
+const AST_DIR := "res://assets/sprites/asteroids/extracted/"
+const NEBULA := "res://assets/sprites/nebula/extracted/nebula_full.png"
+
+func _load_tex(path: String) -> Texture2D:
+	if _tex_cache.has(path):
+		return _tex_cache[path]
+	var img := Image.new()
+	if img.load(path) != OK:
+		return null
+	var t := ImageTexture.create_from_image(img)
+	_tex_cache[path] = t
+	return t
 
 func setup(m: SectorMap) -> void:
 	map = m
+	_theme_id = str(GameState.sector_theme.get("id", ""))
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	_build_decorations()
 	_build_buttons()
 	queue_redraw()
+
+func _build_decorations() -> void:
+	_decor.clear()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(GameState.sector) * 7919 + 13
+	var planets := []
+	var pfiles := ["s01_164639.png", "s02_164639.png", "s03_164639.png", "s04_164639.png",
+		"s05_164639.png", "s06_112219.png", "s07_112219.png", "s08_53833.png", "s09_28691.png"]
+	for fn in pfiles:
+		var t := _load_tex(PLANET_DIR + fn)
+		if t != null:
+			planets.append(t)
+	# scenic planet slots (avoid top-left header region)
+	var slots := [
+		Vector2(1120, 90), Vector2(1160, 430), Vector2(1120, 600),
+		Vector2(640, 685), Vector2(80, 620), Vector2(80, 360), Vector2(950, 105),
+	]
+	for slot in slots:
+		var tex: Texture2D = planets[rng.randi_range(0, planets.size() - 1)]
+		var w: float = tex.get_width()
+		var h: float = tex.get_height()
+		var scale := rng.randf_range(0.16, 0.34)
+		var p: Vector2 = slot + Vector2(rng.randf_range(-26, 26), rng.randf_range(-20, 20))
+		_decor.append({
+			"texture": tex, "pos": p - Vector2(w, h) * scale * 0.5,
+			"size": Vector2(w, h) * scale,
+			"color": Color(1, 1, 1, 0.9),
+		})
+	# asteroids scattered in the margins
+	var a_files := ["s00_9265.png", "s01_4684.png", "s02_2446.png", "s03_2446.png",
+		"s04_2371.png", "s05_2370.png", "s06_2300.png", "s07_2216.png"]
+	var asteroids := []
+	for fn in a_files:
+		var t := _load_tex(AST_DIR + fn)
+		if t != null:
+			asteroids.append(t)
+	for i in 14:
+		var tex: Texture2D = asteroids[rng.randi_range(0, asteroids.size() - 1)]
+		var w := float(tex.get_width())
+		var s := rng.randf_range(0.5, 0.9)
+		var p := Vector2(rng.randf_range(30, 1250), rng.randf_range(30, 690))
+		if p.x < 300 and p.y < 160:
+			p.y += 150
+		_decor.append({
+			"texture": tex, "pos": p,
+			"size": Vector2(w, w) * s,
+			"color": Color(1, 1, 1, rng.randf_range(0.55, 0.85)),
+		})
+	# nebula backdrop for nebula themes
+	if _theme_id == "nebula":
+		var neb := _load_tex(NEBULA)
+		if neb != null:
+			var nw := float(neb.get_width())
+			var nh := float(neb.get_height())
+			var ns := 0.3
+			_decor.append({
+				"texture": neb, "pos": Vector2(560, 60),
+				"size": Vector2(nw, nh) * ns,
+				"color": Color(1, 1, 1, 0.92),
+			})
+
+func _theme_bg() -> String:
+	match _theme_id:
+		"civilian": return "bg_lonelystar.png"
+		"nebula": return "bg_darknebula.png"
+		"pirate": return "bg_lonelyRedStar.png"
+		"rock": return "bg_lonelyRedStar.png"
+		"rebel": return "bg_lonelyRedStar.png"
+		"engi": return "bg_blueStarcluster.png"
+		"federation": return "bg_dullstars2.png"
+		"mantis": return "bg_lonelystar.png"
+		_: return "bg_dullstars.png"
 
 func _build_buttons() -> void:
 	for child in get_children():
@@ -54,6 +146,14 @@ func beacon_px(b: Dictionary) -> Vector2:
 func _draw() -> void:
 	if map == null:
 		return
+	# sector space background
+	var bg := _load_tex(BG_DIR + _theme_bg())
+	if bg != null:
+		draw_texture_rect(bg, Rect2(Vector2.ZERO, Vector2(1280, 720)), false)
+	# decorative planets / asteroids / nebula
+	for d in _decor:
+		if d["texture"] != null:
+			draw_texture_rect(d["texture"], Rect2(d["pos"], d["size"]), false, d["color"])
 	# rebel fleet zone (red)
 	var fleet := map.fleet_col
 	if fleet >= 0:

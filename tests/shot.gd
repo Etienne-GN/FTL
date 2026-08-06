@@ -26,10 +26,6 @@ func _ready() -> void:
 		print("LAYOUT OK")
 	else:
 		print("LAYOUT OVERLAPS: ", probs)
-	if probs.is_empty():
-		get_tree().quit(0)
-	else:
-		get_tree().quit(1)
 	# map screenshot
 	main._show_map()
 	for i in 5:
@@ -44,4 +40,4 @@ func _ready() -> void:
 	var img3 := get_viewport().get_texture().get_image()
 	img3.save_png("/tmp/opencode/store.png")
 	print("SHOT SAVED state=", main.state)
-	get_tree().quit()
+	get_tree().quit(0 if probs.is_empty() else 1)
