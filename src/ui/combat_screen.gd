@@ -40,6 +40,7 @@ var enemy_info_label: Label
 var jump_label: Label
 
 var star_points := []
+var background_texture: Texture2D
 
 # Rectangles to sanity-check for screen overlap (global pixel rects).
 var layout_rects := {}                 # name -> Rect2
@@ -109,12 +110,49 @@ func start_battle(p: Ship, e: Ship, sector: int) -> void:
 
 # ---------- scene construction ----------
 
+const BG_DIR := "res://assets/sprites/backgrounds/extracted/"
+
 func _build_background() -> void:
+	var hazard: String = str(GameState.pending_encounter.get("hazard", ""))
+	var bg_file := _hazard_bg(hazard)
+	if bg_file.is_empty():
+		bg_file = _theme_bg(str(GameState.sector_theme.get("id", "")))
+	background_texture = _load_bg(bg_file)
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.03, 0.07)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+
+func _load_bg(path: String) -> Texture2D:
+	if path.is_empty():
+		return null
+	var img := Image.new()
+	if img.load(BG_DIR + path) != OK:
+		push_warning("Missing background: " + path)
+		return null
+	return ImageTexture.create_from_image(img)
+
+func _theme_bg(theme_id: String) -> String:
+	match theme_id:
+		"civilian": return "bg_lonelystar.png"
+		"nebula": return "bg_darknebula.png"
+		"pirate": return "bg_lonelyRedStar.png"
+		"engi": return "bg_blueStarcluster.png"
+		"mantis": return "bg_lonelystar.png"
+		"rock": return "bg_lonelyRedStar.png"
+		"federation": return "bg_dullstars2.png"
+		"rebel": return "bg_lonelyRedStar.png"
+		_: return "bg_dullstars.png"
+
+func _hazard_bg(hazard: String) -> String:
+	match hazard:
+		"asteroids": return "low_asteroid.png"
+		"nebula": return "low_nebula.png"
+		"ion": return "low_pulsar.png"
+		"sun": return "low_sun.png"
+		"storm": return "low_storm.png"
+		_: return ""
 
 func _build_ships() -> void:
 	const SCALE := 0.5
@@ -135,6 +173,8 @@ func _build_starfield() -> void:
 		star_points.append(Vector2(randf() * 1280, randf() * 720))
 
 func _draw() -> void:
+	if background_texture != null:
+		draw_texture_rect(background_texture, Rect2(Vector2.ZERO, Vector2(1280, 720)), false)
 	for p in star_points:
 		draw_rect(Rect2(p, Vector2(2, 2)), Color(1, 1, 1, randf() * 0.5 + 0.2))
 

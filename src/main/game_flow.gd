@@ -30,6 +30,12 @@ func _build_background() -> void:
 func _show_menu() -> void:
 	_clear()
 	state = State.MENU
+	var bg := TextureRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.texture = _load_bg("res://assets/sprites/backgrounds/PC _ Computer - FTL_ Faster Than Light - Miscellaneous - Hangar Background.png")
+	bg.modulate = Color(0.45, 0.45, 0.5)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_CENTER)
 	add_child(vbox)
@@ -68,6 +74,13 @@ func _show_menu() -> void:
 func _sfx(name: String) -> void:
 	if has_node("/root/SFX"):
 		get_node("/root/SFX").play(name)
+
+func _load_bg(path: String) -> Texture2D:
+	var img := Image.new()
+	if img.load(path) != OK:
+		push_warning("Missing background: " + path)
+		return null
+	return ImageTexture.create_from_image(img)
 
 func _start_with(ship_id: String) -> void:
 	if SaveManager.has_save():
