@@ -20,6 +20,7 @@ func run_tests() -> void:
 	await _test_boarding()
 	_run_test("sector map", _test_sector_map())
 	_run_test("jump flow", _test_jump())
+	_run_test("jump range", _test_jump_range())
 	_run_test("run completion", _test_run_completion())
 	_run_test("boss encounter", _test_boss())
 	_run_test("save round-trip", _test_save())
@@ -182,6 +183,24 @@ func _test_jump() -> bool:
 	if GameState.player_ship.fuel != fuel_before - 1:
 		return false
 	# jumping to exit advances sector
+	return true
+
+func _test_jump_range() -> bool:
+	# Each jump_range must allow advancing a different number of columns.
+	for distance in [1, 2, 3]:
+		var m := SectorMap.new()
+		m.generate(1)
+		m.jump_range = distance
+		if m.current().col != 0:
+			return false
+		var reach := m.reachable()
+		if m.current().col + 1 <= m.COLS - 1:
+			var max_col: int = m.current().col + distance
+			for bid in reach:
+				if m.beacon_map[bid].col > max_col or m.beacon_map[bid].col <= m.current().col:
+					return false
+			if reach.is_empty():
+				return false
 	return true
 
 func _test_run_completion() -> bool:

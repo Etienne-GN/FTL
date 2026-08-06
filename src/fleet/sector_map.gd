@@ -99,13 +99,28 @@ func current() -> Dictionary:
 	return beacon_map[player_id]
 
 func reachable() -> Array:
+	# Beacons within `jump_range` hops from the current node, not skipping
+	# columns ahead of the target. BFS so range 1/2/3 behave differently.
 	var out: Array = []
 	var cur := current()
 	var max_col: int = cur.col + jump_range
-	for cid in cur.conns:
-		var b: Dictionary = beacon_map[cid]
-		if b.col > cur.col and b.col <= max_col and not visited.has(b.id):
-			out.append(b.id)
+	var frontier: Array = [cur.id]
+	var seen := {cur.id: true}
+	var steps := 0
+	while not frontier.is_empty() and steps < jump_range:
+		steps += 1
+		var next_frontier: Array = []
+		for cid in frontier:
+			var b: Dictionary = beacon_map[cid]
+			for nid in b.conns:
+				var n: Dictionary = beacon_map[nid]
+				if seen.has(nid) or n.col <= cur.col or n.col > max_col:
+					continue
+				if not visited.has(nid):
+					out.append(nid)
+				seen[nid] = true
+				next_frontier.append(nid)
+		frontier = next_frontier
 	return out
 
 func can_jump() -> bool:

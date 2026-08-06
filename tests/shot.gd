@@ -4,6 +4,13 @@ extends Node
 func _ready() -> void:
 	var main = get_node("../Main")
 	await get_tree().process_frame
+	# main menu screenshot (menu is shown on startup)
+	for i in 3:
+		await get_tree().process_frame
+	var img_menu: Image = get_window().get_texture().get_image()
+	if img_menu != null:
+		img_menu.save_png("/tmp/opencode/menu.png")
+		print("MENU SHOT SAVED")
 	GameState.new_run("kestrel")
 	var p := GameState.player_ship
 	for i in 8:
