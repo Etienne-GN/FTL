@@ -30,7 +30,10 @@ var doors_button: Button
 var cloak_button: Button
 var power_panel: PanelContainer
 var power_boxes := {}          # system_id -> Label
-var weapon_buttons := []       # array of {button, weapon}
+var power_cols := {}           # system_id -> Control (column, for damage tint)
+var weapon_buttons := []       # array of {button, bar, weapon}
+var enemy_info_label: Label
+var jump_label: Label
 
 var star_points := []
 
@@ -108,18 +111,18 @@ func _build_background() -> void:
 
 func _build_ships() -> void:
 	const SCALE := 0.35
+	const ESCALE := 0.45
 	player_view = ShipView.new()
 	player_view.setup(player, false)
 	player_view.scale = Vector2(SCALE, SCALE)
 	add_child(player_view)
-	var ps: Vector2 = player_view.total_size() * SCALE
-	player_view.position = Vector2(60, 340)
+	player_view.position = Vector2(340, 400)
 	enemy_view = ShipView.new()
 	enemy_view.setup(enemy, true)
-	enemy_view.scale = Vector2(SCALE, SCALE)
+	enemy_view.scale = Vector2(ESCALE, ESCALE)
 	add_child(enemy_view)
-	var es: Vector2 = enemy_view.total_size() * SCALE
-	enemy_view.position = Vector2(VP().x - es.x - 20, 70)
+	var es: Vector2 = enemy_view.total_size() * ESCALE
+	enemy_view.position = Vector2(VP().x - es.x - 40, 60)
 
 func _build_starfield() -> void:
 	for i in 300:
@@ -136,9 +139,17 @@ func _build_hud() -> void:
 	add_child(hud)
 
 	resources_label = Label.new()
-	resources_label.position = Vector2(12, 8)
-	resources_label.add_theme_font_size_override("font_size", 18)
+	resources_label.position = Vector2(12, 6)
+	resources_label.add_theme_font_size_override("font_size", 15)
 	hud.add_child(resources_label)
+
+	jump_label = Label.new()
+	jump_label.position = Vector2(VP().x / 2 - 170, 8)
+	jump_label.custom_minimum_size = Vector2(340, 40)
+	jump_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	jump_label.add_theme_font_size_override("font_size", 16)
+	jump_label.modulate = Color(0.6, 0.9, 1.0)
+	hud.add_child(jump_label)
 
 	pause_button = Button.new()
 	pause_button.text = "Pause"
@@ -186,34 +197,54 @@ func _build_hud() -> void:
 		hud.add_child(cloak_button)
 
 	power_panel = PanelContainer.new()
-	power_panel.position = Vector2(12, 540)
-	var vbox := VBoxContainer.new()
-	power_panel.add_child(vbox)
+	power_panel.position = Vector2(310, 640)
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 6)
+	power_panel.add_child(hbox)
 	var title := Label.new()
-	title.text = "SYSTEMS"
-	title.add_theme_font_size_override("font_size", 16)
-	vbox.add_child(title)
-	for sid in player.systems.keys():
-		if sid == "hull":
-			continue
-		vbox.add_child(_make_system_row(sid))
+	title.text = "POWER"
+	title.add_theme_font_size_override("font_size", 15)
+	title.custom_minimum_size = Vector2(58, 0)
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(title)
+	var ordered := ["shields", "engines", "weapons", "drones", "oxygen", "doors",
+		"medbay", "piloting", "teleporter", "cloak", "hacking", "mind_control"]
+	for sid in ordered:
+		if player.systems.has(sid):
+			hbox.add_child(_make_system_col(sid))
 	hud.add_child(power_panel)
 
 	_build_weapons_panel()
-	_build_crew_panel()
-	_build_teleporter_panel(self)
-	_build_advanced_panel()
+	var rail_y := _build_crew_panel()
+	rail_y = _build_teleporter_panel(rail_y)
+	rail_y = _build_advanced_panel(rail_y)
+	_build_enemy_info()
 
 	log_label = Label.new()
-	log_label.position = Vector2(12, 120)
-	log_label.custom_minimum_size = Vector2(300, 120)
+	log_label.position = Vector2(12, 560)
+	log_label.custom_minimum_size = Vector2(270, 120)
 	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	log_label.add_theme_font_size_override("font_size", 14)
 	hud.add_child(log_label)
 
+func _build_enemy_info() -> void:
+	var panel := PanelContainer.new()
+	panel.position = Vector2(VP().x - 330, 225)
+	var vbox := VBoxContainer.new()
+	panel.add_child(vbox)
+	var title := Label.new()
+	title.text = "ENEMY"
+	title.add_theme_font_size_override("font_size", 15)
+	vbox.add_child(title)
+	enemy_info_label = Label.new()
+	enemy_info_label.add_theme_font_size_override("font_size", 14)
+	enemy_info_label.custom_minimum_size = Vector2(280, 40)
+	vbox.add_child(enemy_info_label)
+	hud.add_child(panel)
+
 func _build_weapons_panel() -> void:
 	var panel := PanelContainer.new()
-	panel.position = Vector2(1040, 470)
+	panel.position = Vector2(VP().x - 330, 315)
 	var vbox := VBoxContainer.new()
 	panel.add_child(vbox)
 	var title := Label.new()
@@ -222,35 +253,51 @@ func _build_weapons_panel() -> void:
 	vbox.add_child(title)
 	weapon_buttons.clear()
 	for w in player.weapons:
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(220, 48)
+		btn.custom_minimum_size = Vector2(300, 40)
 		btn.text = "%s  [0%%]" % Content.get_weapon(w.id).get("name", w.id)
 		var captured: WeaponState = w
 		btn.pressed.connect(_select_weapon.bind(captured))
-		vbox.add_child(btn)
-		weapon_buttons.append({"button": btn, "weapon": w})
+		row.add_child(btn)
+		var bar := ProgressBar.new()
+		bar.custom_minimum_size = Vector2(290, 10)
+		bar.max_value = 1.0
+		bar.show_percentage = false
+		row.add_child(bar)
+		vbox.add_child(row)
+		weapon_buttons.append({"button": btn, "bar": bar, "weapon": w})
 	hud.add_child(panel)
 
-func _build_crew_panel() -> void:
+func _build_crew_panel() -> int:
 	var panel := PanelContainer.new()
-	panel.position = Vector2(700, 60)
+	panel.position = Vector2(12, 60)
 	var vbox := VBoxContainer.new()
 	panel.add_child(vbox)
 	var title := Label.new()
 	title.text = "CREW (%d)" % player.crew.size()
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", 15)
 	vbox.add_child(title)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(206, 300)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+	vbox.add_child(scroll)
 	crew_buttons = {}
 	for cm in player.crew:
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(170, 44)
-		btn.text = "%s (%s)" % [cm.name, cm.race]
+		btn.custom_minimum_size = Vector2(200, 34)
+		btn.text = "%s (%s)  HP %d" % [cm.name, cm.race, int(ceil(cm.hp))]
 		btn.tooltip_text = _crew_skill_text(cm)
 		var captured: CrewMember = cm
 		btn.pressed.connect(_select_crew.bind(captured))
-		vbox.add_child(btn)
+		list.add_child(btn)
 		crew_buttons[cm] = btn
 	hud.add_child(panel)
+	return 60 + int(panel.get_minimum_size().y) + 12
 
 func _crew_skill_text(cm: CrewMember) -> String:
 	var parts: Array = []
@@ -268,56 +315,61 @@ func _crew_skill_text(cm: CrewMember) -> String:
 func _roman(lv: int) -> String:
 	return "I" if lv <= 1 else "II"
 
-func _build_teleporter_panel(_ignore) -> void:
+func _build_teleporter_panel(y: int) -> int:
 	if player.systems.has("teleporter"):
 		var panel := PanelContainer.new()
-		panel.position = Vector2(480, 60)
+		panel.position = Vector2(12, y)
 		var vbox := VBoxContainer.new()
 		panel.add_child(vbox)
 		var title := Label.new()
 		title.text = "TELEPORTER"
-		title.add_theme_font_size_override("font_size", 16)
+		title.add_theme_font_size_override("font_size", 15)
 		vbox.add_child(title)
 		var send := Button.new()
 		send.text = "Send crew (enemy)"
-		send.custom_minimum_size = Vector2(160, 44)
+		send.custom_minimum_size = Vector2(200, 34)
 		send.pressed.connect(_teleport_send)
 		vbox.add_child(send)
 		var recall := Button.new()
 		recall.text = "Recall boarders"
-		recall.custom_minimum_size = Vector2(160, 44)
+		recall.custom_minimum_size = Vector2(200, 34)
 		recall.pressed.connect(_teleport_recall)
 		vbox.add_child(recall)
 		hud.add_child(panel)
+		return y + int(panel.get_minimum_size().y) + 10
+	return y
 
 var hack_button: Button
 var mc_button: Button
 
-func _build_advanced_panel() -> void:
+func _build_advanced_panel(y: int) -> int:
 	hack_button = null
 	mc_button = null
 	if player.systems.has("hacking"):
 		hack_button = Button.new()
 		hack_button.text = "Hack (enemy system)"
-		hack_button.custom_minimum_size = Vector2(190, 44)
+		hack_button.custom_minimum_size = Vector2(200, 34)
 		hack_button.pressed.connect(_select_hack)
 		var p := PanelContainer.new()
-		p.position = Vector2(660, 230)
+		p.position = Vector2(12, y)
 		var v := VBoxContainer.new()
 		p.add_child(v)
 		v.add_child(hack_button)
 		hud.add_child(p)
+		y += int(p.get_minimum_size().y) + 10
 	if player.systems.has("mind_control"):
 		mc_button = Button.new()
 		mc_button.text = "Mind Control (crew)"
-		mc_button.custom_minimum_size = Vector2(190, 44)
+		mc_button.custom_minimum_size = Vector2(200, 34)
 		mc_button.pressed.connect(_select_mc)
 		var p2 := PanelContainer.new()
-		p2.position = Vector2(860, 230)
+		p2.position = Vector2(12, y)
 		var v2 := VBoxContainer.new()
 		p2.add_child(v2)
 		v2.add_child(mc_button)
 		hud.add_child(p2)
+		y += int(p2.get_minimum_size().y) + 10
+	return y
 
 func _select_hack() -> void:
 	targeting_hack = true
@@ -363,29 +415,45 @@ func _teleport_recall() -> void:
 	player.recall_boarding(enemy)
 	_log("Boarders recalled.")
 
-func _make_system_row(sid: String) -> Control:
+func _make_system_col(sid: String) -> Control:
 	var sys: SystemState = player.systems[sid]
-	var hbox := HBoxContainer.new()
-	var lbl := Label.new()
-	lbl.text = sys.name
-	lbl.custom_minimum_size = Vector2(90, 0)
-	var pwr_label := Label.new()
-	pwr_label.text = "%d/%d" % [sys.power, sys.level]
-	pwr_label.custom_minimum_size = Vector2(50, 0)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 2)
+	var name_lbl := Label.new()
+	name_lbl.text = Content.get_system(sid).get("name", sid)
+	name_lbl.add_theme_font_size_override("font_size", 10)
+	name_lbl.custom_minimum_size = Vector2(78, 0)
+	col.add_child(name_lbl)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 2)
 	var minus := Button.new()
 	minus.text = "-"
-	minus.custom_minimum_size = Vector2(44, 44)
+	minus.custom_minimum_size = Vector2(24, 24)
+	minus.add_theme_font_size_override("font_size", 12)
+	var pwr_label := Label.new()
+	pwr_label.text = "%d/%d" % [sys.power, sys.level]
+	pwr_label.add_theme_font_size_override("font_size", 12)
+	pwr_label.custom_minimum_size = Vector2(30, 0)
+	pwr_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var plus := Button.new()
 	plus.text = "+"
-	plus.custom_minimum_size = Vector2(44, 44)
-	minus.pressed.connect(_adj_power.bind(sid, -1, pwr_label))
-	plus.pressed.connect(_adj_power.bind(sid, 1, pwr_label))
-	hbox.add_child(lbl)
-	hbox.add_child(minus)
-	hbox.add_child(plus)
-	hbox.add_child(pwr_label)
+	plus.custom_minimum_size = Vector2(24, 24)
+	plus.add_theme_font_size_override("font_size", 12)
+	minus.pressed.connect(_adj_power.bind(sid, -1))
+	plus.pressed.connect(_adj_power.bind(sid, 1))
+	row.add_child(minus)
+	row.add_child(pwr_label)
+	row.add_child(plus)
+	col.add_child(row)
 	power_boxes[sid] = pwr_label
-	return hbox
+	power_cols[sid] = col
+	return col
+
+func _adj_power(sid: String, delta: int) -> void:
+	var ok := player.allocate_power(sid, player.systems[sid].power + delta)
+	if not ok:
+		_log("Not enough reactor power.")
+	_refresh_ui()
 
 func VP() -> Vector2:
 	return get_viewport().get_visible_rect().size
@@ -502,12 +570,6 @@ func _quit_to_menu() -> void:
 	GameState.paused = false
 	quit_to_menu.emit()
 
-func _adj_power(sid: String, delta: int, label: Label) -> void:
-	var ok := player.allocate_power(sid, player.systems[sid].power + delta)
-	if not ok:
-		_log("Not enough reactor power.")
-	_refresh_ui()
-
 func _flee() -> void:
 	if _ended:
 		return
@@ -543,6 +605,7 @@ func _process(delta: float) -> void:
 	if cloak_button != null:
 		_refresh_cloak_button()
 	_refresh_advanced()
+	_refresh_ui()
 	player_view.queue_redraw()
 	enemy_view.queue_redraw()
 	if combat.combat_over():
@@ -555,11 +618,28 @@ func _end_battle(winner: Ship) -> void:
 	battle_ended.emit(winner)
 
 func _refresh_weapon_buttons() -> void:
+	var powered := player.is_powered("weapons")
 	for entry in weapon_buttons:
 		var w: WeaponState = entry.weapon
 		var name: String = Content.get_weapon(w.id).get("name", w.id)
+		var ammo := ""
+		if w.def.get("ammo") == "missiles":
+			ammo = "  %d rnd" % player.missiles
 		var state := "[READY]" if w.ready else "[%.0f%%]" % (w.progress() * 100)
-		entry.button.text = "%s  %s" % [name, state]
+		entry.button.text = "%s  %s%s" % [name, state, ammo]
+		if not powered:
+			entry.button.text = "%s  (unpowered)" % name
+			entry.button.modulate = Color(0.5, 0.5, 0.5)
+		else:
+			entry.button.modulate = Color(1, 1, 0.7) if w.ready else Color.WHITE
+		entry.bar.value = w.progress()
+		entry.bar.modulate = Color(0.3, 1.0, 0.4) if w.ready else Color(1.0, 1.0, 1.0)
+	# show the target reticle on the enemy hull
+	if enemy_view != null:
+		var tr: String = ""
+		if selected_weapon != null and selected_weapon.target_room_id != "":
+			tr = selected_weapon.target_room_id
+		enemy_view.target_room = tr
 
 func _refresh_ui() -> void:
 	if player == null:
@@ -571,6 +651,44 @@ func _refresh_ui() -> void:
 		var sys: SystemState = player.systems.get(sid)
 		if sys != null:
 			power_boxes[sid].text = "%d/%d" % [sys.power, sys.level]
+			var col: Control = power_cols.get(sid)
+			if col != null:
+				if sys.is_destroyed():
+					col.modulate = Color(1.0, 0.35, 0.35)
+				elif sys.ion > 0:
+					col.modulate = Color(0.55, 0.9, 1.0)
+				elif sys.active():
+					col.modulate = Color.WHITE
+				else:
+					col.modulate = Color(0.6, 0.6, 0.6)
+	if jump_label != null:
+		jump_label.text = "FTL JUMP\nDISABLED (IN COMBAT)"
+	if enemy_info_label != null and enemy != null:
+		enemy_info_label.text = "%s\nHull %d/%d   Shields %d" % [
+			enemy.def.get("name", "Enemy"), int(ceil(enemy.hull)), int(enemy.hull_max), enemy.shield_bubbles]
+	for cm in crew_buttons:
+		var btn: Button = crew_buttons[cm]
+		if not cm.alive():
+			btn.modulate = Color(0.5, 0.5, 0.5)
+			btn.text = "%s (%s)  DEAD" % [cm.name, cm.race]
+			continue
+		btn.text = "%s (%s)  HP %d  %s" % [cm.name, cm.race, int(ceil(cm.hp)), _room_display(cm.room.id)]
+		if cm == selected_crew:
+			btn.modulate = Color(1, 1, 0.4)
+		elif cm.room.id in player.rooms and player.rooms[cm.room.id].get("system", "") != "" \
+				and player.is_powered(player.rooms[cm.room.id]["system"]):
+			btn.modulate = Color(0.5, 1.0, 0.6)
+		else:
+			btn.modulate = Color.WHITE
+	player_view.queue_redraw()
+	enemy_view.queue_redraw()
+
+func _room_display(room_id: String) -> String:
+	var room: Dictionary = player.rooms.get(room_id, {})
+	var sys_id: String = room.get("system", "")
+	if sys_id != "":
+		return Content.get_system(sys_id).get("name", sys_id)
+	return "Room"
 
 func _setup_signals() -> void:
 	combat.ship_hit.connect(_on_ship_hit)

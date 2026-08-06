@@ -27,6 +27,8 @@ var tile := Ship.TILE
 var hull_texture: Texture2D = null
 var sprite_atlas: AtlasTexture = null
 var rooms_texture: Texture2D = null
+var shield_texture: Texture2D = null
+var target_room: String = ""        # weapon target reticle highlight
 
 func setup(s: Ship, is_enemy: bool = false) -> void:
 	ship = s
@@ -53,6 +55,11 @@ func setup(s: Ship, is_enemy: bool = false) -> void:
 		var img2 := Image.new()
 		if img2.load(rooms_path) == OK:
 			rooms_texture = ImageTexture.create_from_image(img2)
+	var shield_path := "res://assets/sprites/ships/%s_shield.png" % base
+	if FileAccess.file_exists(shield_path):
+		var img3 := Image.new()
+		if img3.load(shield_path) == OK:
+			shield_texture = ImageTexture.create_from_image(img3)
 
 func _draw() -> void:
 	if ship == null:
@@ -66,8 +73,10 @@ func _draw() -> void:
 		draw_texture_rect(rooms_texture, grid_rect, false)
 	for room_id in ship.room_order:
 		_draw_room(room_id)
+	_draw_shields()
 	_draw_crew()
 	_draw_hull_bar()
+	_draw_reticle()
 
 func room_rect_px(room_id: String) -> Rect2:
 	var rect: Rect2i = ship.rooms[room_id].rect
@@ -143,6 +152,42 @@ func _draw_hull_bar() -> void:
 	var ratio := ship.hull_ratio()
 	var col := Color(0.2, 1.0, 0.3) if ratio > 0.5 else (Color(1.0, 0.8, 0.2) if ratio > 0.25 else Color(1.0, 0.2, 0.2))
 	draw_rect(Rect2(rect.position, Vector2(w * ratio, 8)), col, true)
+	var label_y := y - 12.0 if flipped else y + 12.0
+	draw_string(ThemeDB.fallback_font, Vector2(0, label_y), "HULL %d/%d" % [int(ceil(ship.hull)), int(ship.hull_max)],
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.85, 0.9, 1.0, 0.9))
+
+func _draw_shields() -> void:
+	if ship.shield_bubbles <= 0:
+		return
+	var grid_rect := Rect2(Vector2.ZERO, Vector2(ship.grid.x * tile, ship.grid.y * tile))
+	var c := grid_rect.get_center()
+	for i in ship.shield_bubbles:
+		var radius := grid_rect.size.x / 2.0 + 18.0 - i * 6.0
+		if shield_texture != null:
+			var sz := Vector2(radius * 2.1, radius * 2.1)
+			draw_texture_rect(shield_texture, Rect2(c - sz / 2.0, sz), false, Color(0.55, 0.75, 1.0, 0.5))
+		else:
+			draw_arc(c, radius, 0.0, TAU, 64, Color(0.5, 0.8, 1.0, 0.55), 3.0)
+			draw_arc(c, radius - 6.0, 0.0, TAU, 64, Color(0.5, 0.8, 1.0, 0.3), 1.5)
+
+func _draw_reticle() -> void:
+	if target_room == "" or not ship.rooms.has(target_room):
+		return
+	var px := room_rect_px(target_room)
+	var t: float = fmod(Time.get_ticks_msec() * 0.004, 1.0)
+	var col := Color(1.0, 0.9, 0.3, 0.45 + 0.55 * t)
+	var corner := 14.0
+	var o := 5.0
+	var p0 := px.position - Vector2(o, o)
+	var p1 := px.end + Vector2(o, o)
+	draw_line(p0, p0 + Vector2(corner, 0), col, 3.0)
+	draw_line(p0, p0 + Vector2(0, corner), col, 3.0)
+	draw_line(Vector2(p1.x, p0.y), Vector2(p1.x - corner, p0.y), col, 3.0)
+	draw_line(Vector2(p1.x, p0.y), Vector2(p1.x, p0.y + corner), col, 3.0)
+	draw_line(Vector2(p0.x, p1.y), Vector2(p0.x + corner, p1.y), col, 3.0)
+	draw_line(Vector2(p0.x, p1.y), Vector2(p0.x, p1.y - corner), col, 3.0)
+	draw_line(p1, p1 - Vector2(corner, 0), col, 3.0)
+	draw_line(p1, p1 - Vector2(0, corner), col, 3.0)
 
 func world_to_room(world_pos: Vector2) -> String:
 	for room_id in ship.room_order:

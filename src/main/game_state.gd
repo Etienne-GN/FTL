@@ -118,11 +118,15 @@ func _enemy_def(rank: int) -> Dictionary:
 	if drone_lvl > 0:
 		sys_cfg["drones"] = {"level": drone_lvl}
 		start_power["drones"] = drone_lvl
+	# Enemy ships ride a real per-ship room blueprint so the colored overlays,
+	# crew placement and targeting align with the hull sprite & floor plan.
+	var blueprint: String = ["kestrel", "engi_a", "mantis_raider"][randi() % 3]
+	var bdef := Content.get_ship(blueprint)
 	var names := ["Enemy Frigate", "Pirate Gunship", "Slug Raider", "Rebel Corvette", "Mantis Hunter", "Engi Guardian"]
 	return {
-		"id": "enemy_%d" % rank,
+		"id": blueprint,
 		"name": names[randi() % names.size()],
-		"grid": {"w": 12, "h": 6},
+		"grid": bdef.get("grid", {"w": 14, "h": 7}),
 		"hull": hull,
 		"reactor": reactor,
 		"power": start_power,
@@ -134,21 +138,13 @@ func _enemy_def(rank: int) -> Dictionary:
 		"systems": sys_cfg,
 		"weapons": weapons,
 		"drones": drones,
-		"rooms": _enemy_rooms(),
+		"rooms": bdef.get("rooms", []),
 	}
 
 func _boss_def(stage: int = 1) -> Dictionary:
-	var rooms := [
-		{"id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1},
-		{"id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 2},
-		{"id": "doors", "system": "doors", "x": 10, "y": 0, "w": 3, "h": 1},
-		{"id": "weapons", "system": "weapons", "x": 0, "y": 2, "w": 4, "h": 2},
-		{"id": "medbay", "system": "medbay", "x": 5, "y": 2, "w": 2, "h": 2},
-		{"id": "oxygen", "system": "oxygen", "x": 8, "y": 2, "w": 2, "h": 2},
-		{"id": "engines", "system": "engines", "x": 11, "y": 2, "w": 3, "h": 2},
-		{"id": "barracks", "system": null, "x": 1, "y": 5, "w": 4, "h": 2},
-		{"id": "teleporter", "system": "teleporter", "x": 6, "y": 4, "w": 3, "h": 2},
-	]
+	# The flagship rides the Mantis blueprint so its hull sprite, floor plan
+	# and room overlays align; stage scaling handled below.
+	var bdef := Content.get_ship("mantis_raider")
 	# stages escalate: more hull, heavier weapons, drones, more crew
 	var hull := 20 + (stage - 1) * 3
 	var crew_count := 4 + (stage - 1)
@@ -179,9 +175,9 @@ func _boss_def(stage: int = 1) -> Dictionary:
 	if drone_lvl > 0:
 		sys_cfg["drones"] = {"level": drone_lvl}
 	return {
-		"id": "flagship",
+		"id": "mantis_raider",
 		"name": "The Flagship",
-		"grid": {"w": 14, "h": 7},
+		"grid": bdef.get("grid", {"w": 14, "h": 7}),
 		"hull": hull,
 		"reactor": 8 + stage,
 		"power": {"shields": 3, "engines": 2, "weapons": 3, "oxygen": 1, "teleporter": 1},
@@ -193,7 +189,7 @@ func _boss_def(stage: int = 1) -> Dictionary:
 		"systems": sys_cfg,
 		"weapons": weapons,
 		"drones": drones,
-		"rooms": rooms,
+		"rooms": bdef.get("rooms", []),
 	}
 
 func _enemy_crew(rank: int) -> Array:
@@ -203,15 +199,6 @@ func _enemy_crew(rank: int) -> Array:
 	for i in range(count):
 		out.append({"name": "Intruder %d" % i, "race": races[randi() % races.size()]})
 	return out
-
-func _enemy_rooms() -> Array:
-	return [
-		{"id": "shield", "system": "shields", "x": 1, "y": 0, "w": 4, "h": 1},
-		{"id": "piloting", "system": "piloting", "x": 6, "y": 0, "w": 3, "h": 2},
-		{"id": "weapons", "system": "weapons", "x": 0, "y": 2, "w": 4, "h": 2},
-		{"id": "engines", "system": "engines", "x": 8, "y": 2, "w": 4, "h": 2},
-		{"id": "oxygen", "system": "oxygen", "x": 3, "y": 4, "w": 4, "h": 2},
-	]
 
 func is_over() -> bool:
 	if player_ship != null and player_ship.hull <= 0.0:
@@ -297,7 +284,7 @@ func resolve_event(choice_index: int) -> String:
 		pending_encounter = {"action": "battle"}
 		return "Battle!"
 	if outcome.get("crew_lose", 0) > 0 and not player_ship.crew.is_empty():
-		var removed: Array = player_ship.crew.pop_back()
+		var removed: CrewMember = player_ship.crew.pop_back()
 	if outcome.get("crew_gain", 0) > 0:
 		var new_crew := CrewMember.new({"race": "mantis", "name": "Slicer"})
 		var start_room: String = player_ship.system_room_id("medbay")
