@@ -29,6 +29,7 @@ var resource_icons := {}        # kind -> ResIcon
 var reactor_pips := []          # array of ColorRect
 var reactor_label: Label
 var log_label: Label
+var log_panel: PanelContainer
 var pause_button: Button
 var battery_button: Button
 var doors_button: Button
@@ -53,12 +54,12 @@ func _rect_noise() -> void:
 		layout_rects["top_bar"] = top_bar.get_global_rect()
 	if bottom_bar != null:
 		layout_rects["bottom_bar"] = bottom_bar.get_global_rect()
-	if log_label != null:
-		layout_rects["log"] = log_label.get_global_rect()
+	if log_panel != null:
+		layout_rects["log"] = log_panel.get_global_rect()
 	if jump_label != null:
 		layout_rects["jump"] = jump_label.get_global_rect()
 	for child in hud.get_children():
-		if child == top_bar or child == bottom_bar or child == jump_label or child == log_label:
+		if child == top_bar or child == bottom_bar or child == jump_label or child == log_panel:
 			continue
 		if child is PanelContainer:
 			var name: String = "panel"
@@ -194,12 +195,22 @@ func _build_hud() -> void:
 	rail_y = _build_advanced_panel(rail_y)
 	_build_enemy_info()
 
+	var log_panel := PanelContainer.new()
+	log_panel.position = Vector2(240, 58)
+	log_panel.custom_minimum_size = Vector2(340, 190)
+	var log_box := VBoxContainer.new()
+	log_panel.add_child(log_box)
+	var log_title := Label.new()
+	log_title.text = "COMBAT LOG"
+	log_title.add_theme_font_size_override("font_size", 13)
+	log_title.modulate = Color(0.7, 0.9, 1.0, 0.9)
+	log_box.add_child(log_title)
 	log_label = Label.new()
-	log_label.position = Vector2(240, 52)
-	log_label.custom_minimum_size = Vector2(320, 150)
+	log_label.custom_minimum_size = Vector2(320, 160)
 	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	log_label.add_theme_font_size_override("font_size", 14)
-	hud.add_child(log_label)
+	log_box.add_child(log_label)
+	hud.add_child(log_panel)
 
 func _build_top_bar() -> void:
 	top_bar = PanelContainer.new()
@@ -380,7 +391,9 @@ func _build_crew_panel() -> int:
 	for cm in player.crew:
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(200, 32)
-		btn.text = "%s (%s)  HP %d" % [cm.name, cm.race, int(ceil(cm.hp))]
+		var pc := _race_color(cm.race)
+		var dot := "[color=%s]●[/color] " % pc.to_html()
+		btn.text = "%s%s (%s)  HP %d" % [dot, cm.name, cm.race, int(ceil(cm.hp))]
 		btn.tooltip_text = _crew_skill_text(cm)
 		var captured: CrewMember = cm
 		btn.pressed.connect(_select_crew.bind(captured))
@@ -388,6 +401,17 @@ func _build_crew_panel() -> int:
 		crew_buttons[cm] = btn
 	hud.add_child(panel)
 	return 44 + int(panel.get_minimum_size().y) + 12
+
+func _race_color(race: String) -> Color:
+	match race:
+		"engi": return Color(0.5, 0.9, 1.0)
+		"mantis": return Color(0.3, 0.9, 0.3)
+		"rock": return Color(0.8, 0.4, 0.2)
+		"zoltan": return Color(1.0, 0.9, 0.2)
+		"crystal": return Color(0.7, 0.3, 0.8)
+		"lanius": return Color(0.5, 0.5, 0.6)
+		"slug": return Color(0.9, 0.5, 0.9)
+	return Color(0.9, 0.6, 0.4)
 
 func _crew_skill_text(cm: CrewMember) -> String:
 	var parts: Array = []

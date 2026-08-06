@@ -45,7 +45,7 @@ func _show_menu() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 	var sub := Label.new()
-	sub.text = "open reimplementation -- Android"
+	sub.text = "A fan-made FTL reimplementation"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(sub)
 	var prog := Label.new()
@@ -135,6 +135,7 @@ func _show_map() -> void:
 	map_view.setup(GameState.map)
 	map_view.clicked.connect(_on_beacon_clicked)
 	add_child(map_view)
+	add_child(header)
 	if GameState.run_active and GameState.player_ship != null:
 		SaveManager.save_run()
 
@@ -285,14 +286,27 @@ func _show_store() -> void:
 	state = State.STORE
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	var box := VBoxContainer.new()
-	panel.add_child(box)
+	var root := VBoxContainer.new()
+	panel.add_child(root)
+	var p := GameState.player_ship
+	var header := HBoxContainer.new()
 	var title := Label.new()
 	title.text = "STORE"
 	title.add_theme_font_size_override("font_size", 20)
-	box.add_child(title)
-	var stock: Array = GameState.stock_systems()
-	for sid in stock:
+	header.add_child(title)
+	var scrap := Label.new()
+	scrap.text = "  Scrap: %d   Hull: %d/%d" % [p.scrap, int(p.hull), int(p.hull_max)]
+	scrap.add_theme_font_size_override("font_size", 15)
+	scrap.modulate = Color(0.9, 0.8, 0.3)
+	header.add_child(scrap)
+	root.add_child(header)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 6)
+	root.add_child(grid)
+	# systems upgrades
+	for sid in GameState.stock_systems():
 		if not GameState.player_ship.systems.has(sid):
 			continue
 		var sys: SystemState = GameState.player_ship.systems[sid]
@@ -300,71 +314,71 @@ func _show_store() -> void:
 			continue
 		var cost := 18 + sys.level * 15
 		var b := Button.new()
-		b.text = "Upgrade %s (%d) [%d scrap]" % [sys.name, sys.level + 1, cost]
-		b.custom_minimum_size = Vector2(560, 40)
+		b.text = "Upgrade %s → Lv%d  [%d]" % [sys.name, sys.level + 1, cost]
+		b.custom_minimum_size = Vector2(300, 40)
 		b.pressed.connect(_buy_upgrade.bind(sid, cost))
-		box.add_child(b)
-	var p := GameState.player_ship
+		grid.add_child(b)
 	if p.reactor < 12:
 		var rcost := 20 + p.reactor * 10
 		var rb0 := Button.new()
-		rb0.text = "Upgrade Reactor (+1 power) [%d scrap]" % rcost
-		rb0.custom_minimum_size = Vector2(560, 40)
+		rb0.text = "Reactor (+1 power)  [%d]" % rcost
+		rb0.custom_minimum_size = Vector2(300, 40)
 		rb0.pressed.connect(_buy_reactor.bind(rcost))
-		box.add_child(rb0)
+		grid.add_child(rb0)
 	var new_systems := {"cloak": 90, "hacking": 85, "mind_control": 80}
 	for sid in new_systems:
 		if p.systems.has(sid):
 			continue
 		var nb := Button.new()
-		nb.text = "Install %s [%d scrap]" % [Content.get_system(sid).get("name", sid), new_systems[sid]]
-		nb.custom_minimum_size = Vector2(560, 40)
+		nb.text = "Install %s  [%d]" % [Content.get_system(sid).get("name", sid), new_systems[sid]]
+		nb.custom_minimum_size = Vector2(300, 40)
 		nb.pressed.connect(_buy_system.bind(sid, int(new_systems[sid])))
-		box.add_child(nb)
+		grid.add_child(nb)
+	# weapons / drones
 	for wid in GameState.stock_weapons():
 		var cost := int(Content.get_weapon(wid).get("price", 30))
 		var b := Button.new()
-		b.text = "Buy %s [%d scrap]" % [Content.get_weapon(wid).get("name", wid), cost]
-		b.custom_minimum_size = Vector2(560, 40)
+		b.text = "Buy %s  [%d]" % [Content.get_weapon(wid).get("name", wid), cost]
+		b.custom_minimum_size = Vector2(300, 40)
 		b.pressed.connect(_buy_weapon.bind(wid, cost))
-		box.add_child(b)
+		grid.add_child(b)
 	for did in GameState.stock_drones():
 		var cost := int(Content.get_drone(did).get("price", 30))
 		var b := Button.new()
-		b.text = "Buy %s [%d scrap]" % [Content.get_drone(did).get("name", did), cost]
-		b.custom_minimum_size = Vector2(560, 40)
+		b.text = "Buy %s  [%d]" % [Content.get_drone(did).get("name", did), cost]
+		b.custom_minimum_size = Vector2(300, 40)
 		b.pressed.connect(_buy_drone.bind(did, cost))
-		box.add_child(b)
-	# provisions
+		grid.add_child(b)
+	# provisions / services
 	if p.hull < p.hull_max:
 		var repair_cost := int((p.hull_max - p.hull)) * 10
 		var rb := Button.new()
-		rb.text = "Repair hull (%d hull) [%d scrap]" % [int(p.hull_max - p.hull), repair_cost]
-		rb.custom_minimum_size = Vector2(560, 40)
+		rb.text = "Repair hull  [%d]" % repair_cost
+		rb.custom_minimum_size = Vector2(300, 40)
 		rb.pressed.connect(_buy_repair.bind(repair_cost))
-		box.add_child(rb)
+		grid.add_child(rb)
 	if p.crew.size() < 8:
 		var cb := Button.new()
-		cb.text = "Hire crew [50 scrap]"
-		cb.custom_minimum_size = Vector2(560, 40)
+		cb.text = "Hire crew  [50]"
+		cb.custom_minimum_size = Vector2(300, 40)
 		cb.pressed.connect(_buy_crew)
-		box.add_child(cb)
+		grid.add_child(cb)
 	var fb := Button.new()
-	fb.text = "Buy fuel (4) [15 scrap]"
-	fb.custom_minimum_size = Vector2(560, 40)
+	fb.text = "Buy fuel (4)  [15]"
+	fb.custom_minimum_size = Vector2(300, 40)
 	fb.pressed.connect(_buy_fuel)
-	box.add_child(fb)
+	grid.add_child(fb)
 	if p.battery_capacity == 0:
 		var bb := Button.new()
-		bb.text = "Install backup battery [45 scrap]"
-		bb.custom_minimum_size = Vector2(560, 40)
+		bb.text = "Install backup battery  [45]"
+		bb.custom_minimum_size = Vector2(300, 40)
 		bb.pressed.connect(_buy_battery)
-		box.add_child(bb)
+		grid.add_child(bb)
 	var leave := Button.new()
 	leave.text = "Leave"
-	leave.custom_minimum_size = Vector2(560, 40)
+	leave.custom_minimum_size = Vector2(300, 40)
 	leave.pressed.connect(_leave_store)
-	box.add_child(leave)
+	grid.add_child(leave)
 	add_child(panel)
 
 func _buy_upgrade(sid: String, cost: int) -> void:
