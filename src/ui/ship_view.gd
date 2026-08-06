@@ -26,27 +26,44 @@ var flipped := true                 # enemy ship drawn mirrored (rooms reversed)
 var tile := Ship.TILE
 var hull_texture: Texture2D = null
 var sprite_atlas: AtlasTexture = null
+var rooms_texture: Texture2D = null
 
 func setup(s: Ship, is_enemy: bool = false) -> void:
 	ship = s
 	flipped = is_enemy
-	var path := "res://assets/sprites/ships/%s.png" % ship.ship_id
-	if not FileAccess.file_exists(path):
-		path = "res://assets/sprites/ships/kestrel.png"
-	if FileAccess.file_exists(path):
-		var img := Image.new()
-		if img.load(path) == OK:
-			hull_texture = ImageTexture.create_from_image(img)
-			sprite_atlas = AtlasTexture.new()
-			sprite_atlas.atlas = hull_texture
-			sprite_atlas.region = Rect2(Vector2.ZERO, Vector2(img.get_size()))
+	var id := ship.ship_id
+	# main hull sprite
+	var hull_path := "res://assets/sprites/ships/%s.png" % id
+	if not FileAccess.file_exists(hull_path):
+		hull_path = "res://assets/sprites/ships/kestrel.png"
+	var img := Image.new()
+	if img.load(hull_path) == OK:
+		hull_texture = ImageTexture.create_from_image(img)
+		sprite_atlas = AtlasTexture.new()
+		sprite_atlas.atlas = hull_texture
+		sprite_atlas.region = Rect2(Vector2.ZERO, Vector2(img.get_size()))
+	# rooms floor-plan (same layout for A and B layouts of a given hull)
+	var base := "kestrel"
+	match id:
+		"engi_a", "engi_b": base = "engi"
+		"federation_a", "federation_b": base = "federation"
+		"zoltan_a", "zoltan_b": base = "zoltan"
+	var rooms_path := "res://assets/sprites/ships/%s_rooms.png" % base
+	if FileAccess.file_exists(rooms_path):
+		var img2 := Image.new()
+		if img2.load(rooms_path) == OK:
+			rooms_texture = ImageTexture.create_from_image(img2)
 
 func _draw() -> void:
 	if ship == null:
 		return
+	var grid_rect := Rect2(Vector2.ZERO, Vector2(ship.grid.x * tile, ship.grid.y * tile))
 	if sprite_atlas != null:
 		var dest_rect := Rect2(Vector2(-20, -20), Vector2(ship.grid.x * tile + 40, ship.grid.y * tile + 40))
 		draw_texture_rect(sprite_atlas, dest_rect, false)
+	# draw the authentic floor-plan layout art beneath the room overlays
+	if rooms_texture != null:
+		draw_texture_rect(rooms_texture, grid_rect, false)
 	for room_id in ship.room_order:
 		_draw_room(room_id)
 	_draw_crew()
@@ -67,7 +84,8 @@ func _draw_room(room_id: String) -> void:
 	var sys: SystemState = ship.systems.get(sys_id)
 	var powered := sys != null and sys.active() and not sys.is_destroyed()
 	var draw_col: Color = col if powered else col * 0.35
-	draw_col.a = 0.55   # translucent so hull texture shows through underneath
+	# light tint overlay so the authentic floor-plan art stays visible
+	draw_col.a = 0.28 if rooms_texture != null else 0.55
 	draw_rect(px, draw_col, true)
 	# system damage overlay
 	if sys != null and sys.is_destroyed():
